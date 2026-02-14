@@ -1,0 +1,17 @@
+{
+  "name": "resist-events",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public",
+    "db:migrate": "wrangler d1 execute RESIST_DB --local --file=schema/schema.sql",
+    "db:seed": "wrangler d1 execute RESIST_DB --local --file=seed/seed-camelot.sql",
+    "db:reset": "rm -rf .wrangler && npm run db:migrate && npm run db:seed",
+    "db:migrate:remote": "wrangler d1 execute RESIST_DB --remote --file=schema/schema.sql",
+    "db:seed:remote": "wrangler d1 execute RESIST_DB --remote --file=seed/seed-camelot.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3"
+  }
+}

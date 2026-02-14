@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resist Events</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800;900&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<!-- ======= DEMO MODE BANNER ======= -->
+<div class="demo-banner" id="demoBanner" style="display:none;">
+  DEMO MODE — Role: <span id="demoBannerRole">Guest</span> · <button class="btn btn-ghost btn-xs" style="color:var(--amber);" onclick="showDemoRoleModal()">Switch Role</button>
+</div>
+
+<!-- ======= DEMO ROLE SELECTOR ======= -->
+<div class="demo-role-modal" id="demoRoleModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Choose Your Demo Role</h2>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted); margin-bottom: 8px;">This is a demo instance. Pick a role to explore the app:</p>
+      <div class="demo-role-options">
+        <button class="demo-role-btn" onclick="setDemoRole('guest')">
+          <div class="role-icon">&#x1F441;</div>
+          <div class="role-info">
+            <h4>Guest</h4>
+            <p>Browse events and organizations. Read-only access.</p>
+          </div>
+        </button>
+        <button class="demo-role-btn" onclick="setDemoRole('organizer')">
+          <div class="role-icon">&#x1F4CB;</div>
+          <div class="role-info">
+            <h4>Organizer</h4>
+            <p>Create and manage events, message site admins.</p>
+          </div>
+        </button>
+        <button class="demo-role-btn" onclick="setDemoRole('admin')">
+          <div class="role-icon">&#x1F6E0;</div>
+          <div class="role-info">
+            <h4>Admin</h4>
+            <p>Full access. Approve events, manage organizations.</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= HEADER ======= -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="site-logo" onclick="showSection('home'); return false;">
+      <div class="logo-icon">R</div>
+      <span class="logo-text" data-config="site_name"><span class="highlight" data-config="site_region"></span> Resist Events</span>
+    </a>
+    <div class="header-auth">
+      <div class="user-badge" id="userBadge">
+        <span class="dot"></span>
+        <span id="userBadgeName">Loading...</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ======= NAV ======= -->
+<nav class="nav-bar">
+  <div class="nav-inner" id="navInner">
+    <button class="nav-btn active" data-section="home" onclick="showSection('home')">Home</button>
+    <button class="nav-btn" data-section="purpose" onclick="openModal('purposeModal')">Our Purpose</button>
+    <button class="nav-btn" data-section="today" onclick="showSection('today')">Today's Events</button>
+    <button class="nav-btn" data-section="calendar" onclick="showSection('calendar')">Full Calendar</button>
+    <button class="nav-btn" data-section="orgs" onclick="showSection('orgs')">Organizations</button>
+    <button class="nav-btn" data-section="sync" onclick="openModal('syncModal')">Sync to Phone</button>
+    <div class="nav-divider organizer-only"></div>
+    <button class="nav-btn organizer-btn organizer-only" data-section="newEvent" onclick="showSection('newEvent')">New Event</button>
+    <button class="nav-btn organizer-btn organizer-only" data-section="myEvents" onclick="showSection('myEvents')">My Events</button>
+    <button class="nav-btn organizer-btn organizer-only" data-section="profile" onclick="openModal('profileModal')">My Profile</button>
+    <button class="nav-btn organizer-btn organizer-only" data-section="contact" onclick="showSection('contact')">Messages <span class="nav-badge" id="messagesBadge" style="display:none;background:var(--sage);">0</span></button>
+    <div class="nav-divider admin-only"></div>
+    <button class="nav-btn admin-btn admin-only" data-section="reviewQueue" onclick="showSection('reviewQueue')">Review Queue <span class="nav-badge" id="reviewBadge" style="display:none;">0</span></button>
+    <button class="nav-btn admin-btn admin-only" data-section="manageOrgs" onclick="showSection('manageOrgs')">Manage Orgs</button>
+    <button class="nav-btn admin-btn admin-only" data-section="manageUsers" onclick="showSection('manageUsers')">Manage Users</button>
+  </div>
+</nav>
+
+<!-- ======= MAIN ======= -->
+<main class="main-content">
+
+  <!-- HOME -->
+  <div id="section-home" class="section-panel active">
+    <div class="hero-section fade-in">
+      <h1>Together We<br><span class="accent">Show Up.</span></h1>
+      <p class="hero-subtitle" id="heroSubtitle">One calendar for every rally, march, meeting, and action. Find your people. Make your voice heard.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statEvents">--</div>
+          <div class="hero-stat-label">Upcoming Events</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statOrgs">--</div>
+          <div class="hero-stat-label">Organizations</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num" id="statMobilized">--</div>
+          <div class="hero-stat-label">People Mobilized</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title" style="margin-top: 48px;">Upcoming Events</h2>
+    <p class="section-subtitle">Next few events across all organizations</p>
+
+    <div class="events-grid" id="homeEventsGrid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- TODAY'S EVENTS -->
+  <div id="section-today" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Today's Events</h2>
+        <p class="section-subtitle" id="todayDateLabel"></p>
+      </div>
+    </div>
+    <div id="todayEventsGrid" class="events-grid"></div>
+    <div id="todayEmpty" class="empty-state" style="display:none;">
+      <div class="empty-state-icon">&#x1F4C5;</div>
+      <h3>No events scheduled for today</h3>
+      <p>Check the full calendar for upcoming actions.</p>
+    </div>
+  </div>
+
+  <!-- FULL CALENDAR -->
+  <div id="section-calendar" class="section-panel">
+    <h2 class="section-title">Event Calendar</h2>
+    <p class="section-subtitle">Browse all scheduled events</p>
+    <div class="cal-nav">
+      <button class="btn btn-ghost" onclick="changeMonth(-1)">&larr; Prev</button>
+      <h3 id="calMonthLabel"></h3>
+      <button class="btn btn-ghost" onclick="changeMonth(1)">Next &rarr;</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- ORGANIZATIONS -->
+  <div id="section-orgs" class="section-panel">
+    <h2 class="section-title">Participating Organizations</h2>
+    <p class="section-subtitle" id="orgsSubtitle">Groups working together</p>
+    <div id="orgsList"></div>
+  </div>
+
+  <!-- NEW EVENT FORM -->
+  <div id="section-newEvent" class="section-panel">
+    <h2 class="section-title" id="eventFormTitle">Register a New Event</h2>
+    <p class="section-subtitle">Fill out the details below to submit your event for review</p>
+
+    <form id="eventForm" onsubmit="return false;">
+      <!-- Basic Info -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F4CC;</span> Event Details</div>
+        <div class="form-group">
+          <label class="form-label">Event Title *</label>
+          <input type="text" class="form-input" id="eventTitle" placeholder="e.g. March for Climate Justice" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date & Time *</label>
+            <input type="datetime-local" class="form-input" id="eventStart" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date & Time *</label>
+            <input type="datetime-local" class="form-input" id="eventEnd" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sponsoring Organization</label>
+          <input type="text" class="form-input" id="sponsorOrg" readonly>
+          <p class="form-hint">Defaults to your organization. Events you host will display a verified badge.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Event Description *</label>
+          <textarea class="form-textarea" id="eventDesc" placeholder="Describe the event, its goals, and what attendees can expect..." required></textarea>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F4CD;</span> Location</div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="virtualEventCheck" onchange="toggleVirtualEvent()">
+            This is a virtual / online event
+          </label>
+        </div>
+        <div id="locationFields">
+          <div class="form-group">
+            <label class="form-check">
+              <input type="checkbox" id="hideAddressCheck" onchange="toggleAddressVisibility()">
+              Require registration to see the address
+            </label>
+          </div>
+          <div class="form-group" id="addressGroup">
+            <label class="form-label">Address *</label>
+            <input type="text" class="form-input" id="addressInput" placeholder="123 Main St, Phoenix, AZ 85001" required>
+            <p class="form-hint">Full street address with city and ZIP for map integration</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Parking Information</label>
+            <textarea class="form-textarea" id="eventParking" rows="2" placeholder="e.g. Free street parking available on 3rd Ave, paid lot at..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F517;</span> Links</div>
+        <div class="form-group">
+          <label class="form-label">Event Flyer URL</label>
+          <input type="url" class="form-input" id="eventFlyer" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Organization / Event Website</label>
+          <input type="url" class="form-input" id="eventWebsite" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registration Link</label>
+          <input type="url" class="form-input" id="regLink" placeholder="https://...">
+          <div style="margin-top: 8px;">
+            <label class="form-check">
+              <input type="checkbox" id="regRequiredCheck">
+              Registration is required
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recurring -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F501;</span> Recurring Event</div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="recurringCheck" onchange="toggleRecurring()">
+            This is a recurring event
+          </label>
+          <p class="form-hint">Automatically create multiple events on a schedule</p>
+        </div>
+        <div id="recurringFields" style="display:none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Repeat Every</label>
+              <select class="form-input" id="recurringFrequency">
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 Weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Number of Occurrences</label>
+              <input type="number" class="form-input" id="recurringCount" min="2" max="52" value="4" placeholder="e.g. 4">
+            </div>
+          </div>
+          <p class="form-hint">Each occurrence will be created as a separate event with the same details. You can edit individual events after creation.</p>
+        </div>
+      </div>
+
+      <!-- What to Bring -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F392;</span> What to Bring</div>
+        <div class="chip-group" id="bringChips">
+          <button type="button" class="chip" onclick="toggleChip(this)">Sunscreen <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Water <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Hearing Protection <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Protest Signs <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Hat / Sun Shade <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">First Aid Kit <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Portable Charger <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Comfortable Shoes <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="add-chip-btn" onclick="addCustomChip('bringChips')">+ Add Item</button>
+        </div>
+      </div>
+
+      <!-- What NOT to Bring -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F6AB;</span> What NOT to Bring</div>
+        <div class="chip-group" id="noBringChips">
+          <button type="button" class="chip" onclick="toggleChip(this)">Visible Weapons <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Concealed Carry Weapons <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Megaphones / Speakers <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Pets <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">Alcohol <span class="chip-x">&#x2715;</span></button>
+          <button type="button" class="add-chip-btn" onclick="addCustomChip('noBringChips')">+ Add Item</button>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">&#x1F4DD;</span> Notes from the Organizer</div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <textarea class="form-textarea" id="eventNotes" rows="4" placeholder="Any additional information, instructions, or notes for attendees..."></textarea>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" onclick="saveEvent('draft')">Save as Draft</button>
+        <button type="button" class="btn btn-primary" onclick="saveEvent('review')">Submit for Review</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MY EVENTS LIST -->
+  <div id="section-myEvents" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">My Events</h2>
+        <p class="section-subtitle">Manage events you've created</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-sm" id="archiveToggle" onclick="toggleArchivedEvents()">Show Archived</button>
+      </div>
+    </div>
+    <div id="myEventsList"></div>
+    <div id="loadMoreEvents" style="text-align: center; margin-top: 16px; display: none;">
+      <button class="btn btn-ghost" onclick="loadMoreEvents()">Load 20 More Events</button>
+    </div>
+  </div>
+
+  <!-- CONTACT US -->
+  <div id="section-contact" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Messages</h2>
+        <p class="section-subtitle">Send and receive messages with site administrators</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" onclick="openModal('newMessageModal')">+ New Message</button>
+        <button class="btn btn-secondary btn-sm" id="contactArchiveToggle" onclick="toggleArchivedTopics()">Show Archived</button>
+      </div>
+    </div>
+    <div id="contactList"></div>
+    <div id="contactThread" style="display: none;"></div>
+  </div>
+
+  <!-- REVIEW QUEUE (admin) -->
+  <div id="section-reviewQueue" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Event Review Queue</h2>
+        <p class="section-subtitle">Approve or reject submitted events</p>
+      </div>
+    </div>
+    <div id="reviewQueueList"></div>
+    <div id="reviewQueueEmpty" class="empty-state" style="display:none;">
+      <div class="empty-state-icon">&#x2705;</div>
+      <h3>All caught up!</h3>
+      <p>No events pending review.</p>
+    </div>
+  </div>
+
+  <!-- MANAGE ORGS (admin) -->
+  <div id="section-manageOrgs" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Manage Organizations</h2>
+        <p class="section-subtitle">Create, edit, and remove organizations</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openOrgEditModal()">+ Add Organization</button>
+    </div>
+    <div id="adminOrgsList"></div>
+  </div>
+
+  <!-- MANAGE USERS (admin) -->
+  <div id="section-manageUsers" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Manage Users</h2>
+        <p class="section-subtitle">Create, edit, and remove user accounts</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openUserEditModal()">+ Add User</button>
+    </div>
+    <div id="adminUsersList"></div>
+  </div>
+
+</main>
+
+<!-- ======= FOOTER ======= -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p>&copy; 2026 Resist Events &middot; Open source and community-driven</p>
+    <div class="footer-links">
+      <a href="#" onclick="openModal('privacyModal'); return false;">Privacy Policy</a>
+      <span class="footer-sep">|</span>
+      <a href="#" onclick="openModal('termsModal'); return false;">Terms of Service</a>
+      <span class="footer-sep">|</span>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ======= MODALS ======= -->
+
+<!-- PURPOSE MODAL -->
+<div class="modal-overlay" id="purposeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Our Purpose</h2>
+      <button class="modal-close" onclick="closeModal('purposeModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="purposeContent">
+      <p style="color:var(--text-muted);">Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC MODAL -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Sync with Your Phone</h2>
+      <button class="modal-close" onclick="closeModal('syncModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 20px; color: var(--text-muted);">Subscribe to our event calendar to get automatic updates on your phone or computer.</p>
+      <div class="sync-options">
+        <div class="sync-option" onclick="copyCalUrl('ical')">
+          <div class="sync-option-icon">&#x1F4F1;</div>
+          <h4>Apple Calendar</h4>
+          <p>Subscribe via iCal</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('gcal')">
+          <div class="sync-option-icon">&#x1F4C5;</div>
+          <h4>Google Calendar</h4>
+          <p>Add to Google Calendar</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('outlook')">
+          <div class="sync-option-icon">&#x1F4BB;</div>
+          <h4>Outlook</h4>
+          <p>Subscribe via Outlook</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('ical')">
+          <div class="sync-option-icon">&#x1F517;</div>
+          <h4>Copy iCal URL</h4>
+          <p>For any calendar app</p>
+        </div>
+      </div>
+      <div style="margin-top: 16px; padding: 12px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <p id="syncCalUrl" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); word-break: break-all;">webcal://example.com/cal/subscribe.ics</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>My Profile</h2>
+      <button class="modal-close" onclick="closeModal('profileModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Organization Public Name</label>
+        <input type="text" class="form-input" id="profileOrgName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organization Website</label>
+        <input type="url" class="form-input" id="profileOrgWebsite" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Social Links</label>
+        <div class="social-inputs">
+          <div class="social-input-group">
+            <div class="social-icon">FB</div>
+            <input type="url" class="form-input" id="profileFB" placeholder="Facebook URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">IG</div>
+            <input type="url" class="form-input" id="profileIG" placeholder="Instagram URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">SC</div>
+            <input type="url" class="form-input" id="profileSC" placeholder="Snapchat URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">SG</div>
+            <input type="url" class="form-input" id="profileSG" placeholder="Signal group link">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">RD</div>
+            <input type="url" class="form-input" id="profileRD" placeholder="Reddit URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">X</div>
+            <input type="url" class="form-input" id="profileX" placeholder="X / Twitter URL">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('profileModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW MESSAGE MODAL -->
+<div class="modal-overlay" id="newMessageModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>New Message</h2>
+      <button class="modal-close" onclick="closeModal('newMessageModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Topic *</label>
+        <input type="text" class="form-input" id="newMsgTopic" placeholder="e.g. Question about event approval process">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message *</label>
+        <textarea class="form-textarea" id="newMsgText" rows="5" placeholder="Type your message here..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newMessageModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewMessage()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORG EDIT MODAL (admin) -->
+<div class="modal-overlay" id="orgEditModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="orgEditModalTitle">Add Organization</h2>
+      <button class="modal-close" onclick="closeModal('orgEditModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="orgEditId">
+      <div class="form-group">
+        <label class="form-label">Organization Name *</label>
+        <input type="text" class="form-input" id="orgEditName" placeholder="e.g. Knights of the Round Table">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Abbreviation *</label>
+        <input type="text" class="form-input" id="orgEditAbbr" placeholder="e.g. KRT" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Website</label>
+        <input type="url" class="form-input" id="orgEditWebsite" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Social Links</label>
+        <div class="social-inputs">
+          <div class="social-input-group">
+            <div class="social-icon">FB</div>
+            <input type="url" class="form-input" id="orgEditFB" placeholder="Facebook URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">IG</div>
+            <input type="url" class="form-input" id="orgEditIG" placeholder="Instagram URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">X</div>
+            <input type="url" class="form-input" id="orgEditX" placeholder="X / Twitter URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">RD</div>
+            <input type="url" class="form-input" id="orgEditRD" placeholder="Reddit URL">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('orgEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOrgEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER EDIT MODAL (admin) -->
+<div class="modal-overlay" id="userEditModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="userEditModalTitle">Add User</h2>
+      <button class="modal-close" onclick="closeModal('userEditModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userEditId">
+      <div class="form-group">
+        <label class="form-label">Display Name *</label>
+        <input type="text" class="form-input" id="userEditName" placeholder="e.g. Sir Lancelot">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-input" id="userEditEmail" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-input" id="userEditRole" onchange="onUserRoleChange()">
+          <option value="guest">Guest</option>
+          <option value="organizer">Organizer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group" id="userEditOrgGroup">
+        <label class="form-label">Organization</label>
+        <select class="form-input" id="userEditOrg">
+          <option value="">None</option>
+        </select>
+        <p class="form-hint" id="userEditOrgHint" style="display:none;">Organizer role requires an organization.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('userEditModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUserEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRIVACY POLICY MODAL -->
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Privacy Policy</h2>
+      <button class="modal-close" onclick="closeModal('privacyModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
+      <p><strong>Last updated:</strong> February 2026</p>
+      <p style="margin-top:12px;">Resist Events is an open-source community event calendar. We are committed to transparency about how this application works.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Information We Collect</h4>
+      <p>This demo instance uses browser cookies solely for demo session management (role selection). No personal data is collected, stored, or shared beyond what you voluntarily enter into the application (event details, organization info, messages).</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Data Storage</h4>
+      <p>All data is stored in a Cloudflare D1 database associated with this deployment. In demo mode, data may be periodically reset. Archived events and messages are automatically deleted after the configured retention period.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Third-Party Services</h4>
+      <p>This application uses Cloudflare Pages for hosting and Cloudflare D1 for data storage. No third-party analytics, tracking, or advertising services are used.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
+      <p>The source code for this application is publicly available. You can review exactly what data is collected and how it is handled by inspecting the codebase.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Contact</h4>
+      <p>If you have questions about this privacy policy, please use the Messages feature to contact the site administrators.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS OF SERVICE MODAL -->
+<div class="modal-overlay" id="termsModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Terms of Service</h2>
+      <button class="modal-close" onclick="closeModal('termsModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
+      <p><strong>Last updated:</strong> February 2026</p>
+      <p style="margin-top:12px;">By using Resist Events, you agree to the following terms.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Purpose</h4>
+      <p>Resist Events is a community-driven event calendar designed to help local organizations coordinate civic actions, rallies, meetings, and community events. The platform is provided as-is for community benefit.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">User Conduct</h4>
+      <p>Users agree to submit only truthful event information, refrain from posting harmful or misleading content, and respect the community guidelines set by site administrators. Events promoting violence or illegal activity are strictly prohibited.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Content Moderation</h4>
+      <p>All submitted events are subject to review and approval by site administrators. Administrators reserve the right to reject, modify, or remove any content that violates these terms or community guidelines.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Disclaimer</h4>
+      <p>This platform is provided "as is" without warranty of any kind. The operators are not responsible for the accuracy of event information submitted by organizers, nor for any outcomes resulting from attendance at listed events.</p>
+      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
+      <p>This software is open source. You are free to fork, modify, and deploy your own instance in accordance with the project's license.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMATION DIALOG -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Archive Event?</h3>
+    <p id="confirmMessage">This action is permanent.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

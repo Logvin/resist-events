@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phoenix Resist Events</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800;900&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ======= CONFIG VARIABLES ======= */
+:root {
+  --site-name: "Phoenix Resist Events";
+  --archive-retention-months: 12;
+
+  /* Desert Dusk palette */
+  --clay: #C2452D;
+  --clay-light: #D4634E;
+  --clay-dark: #9A3522;
+  --sand: #F5E6D3;
+  --sand-light: #FDF6EF;
+  --sand-dark: #E8D0B8;
+  --mesa: #2D2926;
+  --mesa-light: #4A4541;
+  --mesa-mid: #3A3633;
+  --sage: #6B8F71;
+  --sage-light: #8DB193;
+  --sky: #4A8FBF;
+  --sky-light: #6BA8D4;
+  --amber: #E59E2F;
+  --amber-light: #F0B550;
+  --purple: #7B5EA7;
+
+  --bg: #1A1715;
+  --bg-card: #242120;
+  --bg-elevated: #2E2A27;
+  --text: #F5E6D3;
+  --text-muted: #A89B8E;
+  --text-dim: #6B6259;
+  --border: rgba(194, 69, 45, 0.15);
+  --border-strong: rgba(194, 69, 45, 0.3);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 30px rgba(194, 69, 45, 0.1);
+
+  --font-display: 'Libre Franklin', sans-serif;
+  --font-body: 'Source Serif 4', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ======= RESET & BASE ======= */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(194,69,45,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(107,143,113,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ======= SCROLLBAR ======= */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mesa-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--clay); }
+
+/* ======= TYPOGRAPHY ======= */
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); line-height: 1.2; }
+
+/* ======= HEADER ======= */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(26,23,21,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  gap: 16px;
+}
+
+.site-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--clay);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: white;
+  position: relative;
+}
+
+.logo-icon::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--clay-light);
+  opacity: 0.4;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.logo-text .highlight { color: var(--clay); }
+
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(107,143,113,0.12);
+  border: 1px solid rgba(107,143,113,0.2);
+  border-radius: 20px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sage-light);
+}
+
+.user-badge .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--sage);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ======= NAVIGATION ======= */
+.nav-bar {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.nav-bar::-webkit-scrollbar { display: none; }
+
+.nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  gap: 2px;
+  padding: 6px 24px;
+  min-width: max-content;
+}
+
+.nav-btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.nav-btn:hover {
+  background: rgba(194,69,45,0.08);
+  color: var(--text);
+}
+
+.nav-btn.active {
+  background: var(--clay);
+  color: white;
+}
+
+.nav-btn.organizer-btn {
+  color: var(--sage-light);
+  position: relative;
+}
+
+.nav-btn.organizer-btn::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--sage);
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.nav-divider {
+  width: 1px;
+  background: var(--border-strong);
+  margin: 4px 8px;
+  flex-shrink: 0;
+}
+
+/* ======= BUTTONS ======= */
+.btn {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: var(--clay);
+  color: white;
+}
+.btn-primary:hover { background: var(--clay-light); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.btn-secondary:hover { background: var(--mesa-mid); border-color: var(--clay); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+.btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+.btn-danger {
+  background: transparent;
+  color: #E05555;
+  border: 1px solid rgba(224,85,85,0.3);
+}
+.btn-danger:hover { background: rgba(224,85,85,0.1); }
+
+.btn-success {
+  background: var(--sage);
+  color: white;
+}
+.btn-success:hover { background: var(--sage-light); }
+
+.btn-sm { font-size: 12px; padding: 6px 12px; }
+.btn-xs { font-size: 11px; padding: 4px 10px; }
+
+/* ======= MAIN CONTENT ======= */
+.main-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* ======= MODAL OVERLAY ======= */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow-y: auto;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 720px;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  animation: modal-in 0.25s ease;
+  position: relative;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: var(--clay); color: white; }
+
+.modal-body { padding: 24px; }
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ======= FORM ELEMENTS ======= */
+.form-group { margin-bottom: 20px; }
+
+.form-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--clay);
+  box-shadow: 0 0 0 3px rgba(194,69,45,0.1);
+}
+
+.form-input:disabled, .form-textarea:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.form-textarea { min-height: 100px; resize: vertical; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.form-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--clay);
+  cursor: pointer;
+}
+
+/* ======= TAGS / CHIPS ======= */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.chip:hover { border-color: var(--clay); color: var(--text); }
+
+.chip.selected {
+  background: rgba(194,69,45,0.12);
+  border-color: var(--clay);
+  color: var(--clay-light);
+}
+
+.chip.selected .chip-x { display: inline; }
+.chip .chip-x { display: none; font-size: 10px; }
+
+.chip.custom { border-style: dashed; }
+
+.add-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 20px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-chip-btn:hover { border-color: var(--clay); color: var(--clay-light); }
+
+/* ======= SECTION PANELS ======= */
+.section-panel {
+  display: none;
+}
+.section-panel.active { display: block; }
+
+/* ======= HERO / LANDING ======= */
+.hero-section {
+  text-align: center;
+  padding: 60px 0 40px;
+}
+
+.hero-section h1 {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+
+.hero-section h1 .accent { color: var(--clay); }
+
+.hero-subtitle {
+  font-size: 18px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: 0 auto 32px;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat-num {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--clay);
+}
+
+.hero-stat-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ======= EVENT CARDS ======= */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@media (max-width: 400px) {
+  .events-grid { grid-template-columns: 1fr; }
+}
+
+.event-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+.event-card:hover {
+  border-color: var(--clay);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.event-card-date {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--clay);
+  margin-bottom: 8px;
+}
+
+.event-card-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.event-card-org {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--sage);
+  border-radius: 50%;
+  font-size: 9px;
+  color: white;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.event-card-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.event-card-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-tag {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(194,69,45,0.08);
+  color: var(--clay-light);
+  border: 1px solid rgba(194,69,45,0.15);
+}
+
+.event-tag.reg-required {
+  background: rgba(229,158,47,0.1);
+  color: var(--amber);
+  border-color: rgba(229,158,47,0.2);
+}
+
+/* ======= EVENT LIST (organizer) ======= */
+.event-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+
+.event-list-item:hover { border-color: var(--border-strong); }
+
+.event-list-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.event-list-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-list-status {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.status-published { background: rgba(107,143,113,0.15); color: var(--sage-light); }
+.status-review { background: rgba(229,158,47,0.12); color: var(--amber); }
+.status-draft { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+.status-archived { background: rgba(255,255,255,0.03); color: var(--text-dim); font-style: italic; }
+
+.event-list-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ======= CONTACT / MESSAGE LIST ======= */
+.msg-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.msg-list-item:hover { border-color: var(--clay); }
+
+.msg-topic {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.msg-meta {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  max-width: 85%;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.msg-bubble.from-org {
+  background: rgba(194,69,45,0.1);
+  border: 1px solid rgba(194,69,45,0.15);
+  margin-left: auto;
+}
+
+.msg-bubble.from-admin {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  margin-right: auto;
+}
+
+.msg-bubble-meta {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* ======= CALENDAR VIEW ======= */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-top: 16px;
+}
+
+.cal-header {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 8px 4px;
+  color: var(--text-dim);
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  min-height: 70px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-dim);
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+
+.cal-day:hover { border-color: var(--border-strong); }
+.cal-day.today { border-color: var(--clay); }
+.cal-day.today .cal-day-num { color: var(--clay); font-weight: 700; }
+.cal-day.other-month { opacity: 0.3; }
+
+.cal-day-num { margin-bottom: 4px; }
+
+.cal-event-dot {
+  display: block;
+  font-size: 10px;
+  color: var(--clay-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 4px;
+  background: rgba(194,69,45,0.1);
+  border-radius: 3px;
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cal-nav h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .cal-day { min-height: 50px; aspect-ratio: auto; }
+  .cal-event-dot { display: none; }
+  .cal-day.has-events::after {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: var(--clay);
+    border-radius: 50%;
+    margin: 4px auto 0;
+  }
+}
+
+/* ======= ORG LIST ======= */
+.org-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+.org-card:hover { border-color: var(--border-strong); }
+
+.org-avatar {
+  width: 44px;
+  height: 44px;
+  background: var(--bg-elevated);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--clay);
+  flex-shrink: 0;
+  border: 2px solid var(--border-strong);
+}
+
+.org-info h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.org-info p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.org-links {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.org-link-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.org-link-icon:hover { border-color: var(--clay); color: var(--clay); }
+
+/* ======= PROFILE MODAL ======= */
+.social-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .social-inputs { grid-template-columns: 1fr; }
+}
+
+.social-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.social-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.social-input-group .form-input { flex: 1; padding: 8px 10px; font-size: 13px; }
+
+/* ======= SECTION TITLES ======= */
+.section-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ======= FORM SECTIONS ======= */
+.form-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-section-title .icon {
+  width: 24px;
+  height: 24px;
+  background: rgba(194,69,45,0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+/* ======= CONFIRMATION DIALOG ======= */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.confirm-overlay.open { display: flex; }
+
+.confirm-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  animation: modal-in 0.2s ease;
+}
+
+.confirm-box h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #E05555;
+}
+
+.confirm-box p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ======= EMPTY STATES ======= */
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--text-dim);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+.empty-state h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ======= SYNC INFO ======= */
+.sync-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .sync-options { grid-template-columns: 1fr; }
+}
+
+.sync-option {
+  padding: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sync-option:hover { border-color: var(--clay); }
+
+.sync-option-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.sync-option h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.sync-option p {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ======= TOAST ======= */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  background: var(--sage);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 500;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ======= RESPONSIVE ======= */
+@media (max-width: 768px) {
+  .header-inner { height: 56px; }
+  .logo-text { display: none; }
+  .user-badge span:not(.dot) { display: none; }
+  .main-content { padding: 20px 16px 60px; }
+  .hero-section { padding: 40px 0 24px; }
+  .hero-stats { gap: 24px; }
+  .hero-stat-num { font-size: 24px; }
+  .event-list-item { flex-wrap: wrap; gap: 8px; }
+  .event-list-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* ======= SECTION FADE IN ======= */
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- ======= HEADER ======= -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="site-logo" onclick="showSection('home'); return false;">
+      <div class="logo-icon">R</div>
+      <span class="logo-text"><span class="highlight">Phoenix</span> Resist Events</span>
+    </a>
+    <div class="header-auth">
+      <div class="user-badge">
+        <span class="dot"></span>
+        <span>Tempe Rising Indivisible</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ======= NAV ======= -->
+<nav class="nav-bar">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-section="home" onclick="showSection('home')">Home</button>
+    <button class="nav-btn" data-section="purpose" onclick="openModal('purposeModal')">Our Purpose</button>
+    <button class="nav-btn" data-section="today" onclick="showSection('today')">Today's Events</button>
+    <button class="nav-btn" data-section="calendar" onclick="showSection('calendar')">Full Calendar</button>
+    <button class="nav-btn" data-section="orgs" onclick="showSection('orgs')">Organizations</button>
+    <button class="nav-btn" data-section="sync" onclick="openModal('syncModal')">Sync to Phone</button>
+    <div class="nav-divider"></div>
+    <button class="nav-btn organizer-btn" data-section="newEvent" onclick="showSection('newEvent')">New Event</button>
+    <button class="nav-btn organizer-btn" data-section="myEvents" onclick="showSection('myEvents')">My Events</button>
+    <button class="nav-btn organizer-btn" data-section="profile" onclick="openModal('profileModal')">My Profile</button>
+    <button class="nav-btn organizer-btn" data-section="contact" onclick="showSection('contact')">Contact Us</button>
+  </div>
+</nav>
+
+<!-- ======= MAIN ======= -->
+<main class="main-content">
+
+  <!-- HOME -->
+  <div id="section-home" class="section-panel active">
+    <div class="hero-section fade-in">
+      <h1>Together We<br><span class="accent">Show Up.</span></h1>
+      <p class="hero-subtitle">One calendar for every rally, march, meeting, and action happening across the Phoenix metro. Find your people. Make your voice heard.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">47</div>
+          <div class="hero-stat-label">Upcoming Events</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">18</div>
+          <div class="hero-stat-label">Organizations</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">2.4k</div>
+          <div class="hero-stat-label">People Mobilized</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title" style="margin-top: 48px;">Upcoming Events</h2>
+    <p class="section-subtitle">Next few events across all organizations</p>
+
+    <div class="events-grid" id="homeEventsGrid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- TODAY'S EVENTS -->
+  <div id="section-today" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Today's Events</h2>
+        <p class="section-subtitle" id="todayDateLabel"></p>
+      </div>
+    </div>
+    <div id="todayEventsGrid" class="events-grid"></div>
+    <div id="todayEmpty" class="empty-state" style="display:none;">
+      <div class="empty-state-icon">📅</div>
+      <h3>No events scheduled for today</h3>
+      <p>Check the full calendar for upcoming actions.</p>
+    </div>
+  </div>
+
+  <!-- FULL CALENDAR -->
+  <div id="section-calendar" class="section-panel">
+    <h2 class="section-title">Event Calendar</h2>
+    <p class="section-subtitle">Browse all scheduled events</p>
+    <div class="cal-nav">
+      <button class="btn btn-ghost" onclick="changeMonth(-1)">← Prev</button>
+      <h3 id="calMonthLabel"></h3>
+      <button class="btn btn-ghost" onclick="changeMonth(1)">Next →</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- ORGANIZATIONS -->
+  <div id="section-orgs" class="section-panel">
+    <h2 class="section-title">Participating Organizations</h2>
+    <p class="section-subtitle">Groups working together across the Phoenix metro</p>
+    <div id="orgsList"></div>
+  </div>
+
+  <!-- NEW EVENT FORM -->
+  <div id="section-newEvent" class="section-panel">
+    <h2 class="section-title" id="eventFormTitle">Register a New Event</h2>
+    <p class="section-subtitle">Fill out the details below to submit your event for review</p>
+
+    <form id="eventForm" onsubmit="return false;">
+      <!-- Basic Info -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">📌</span> Event Details</div>
+        <div class="form-group">
+          <label class="form-label">Event Title *</label>
+          <input type="text" class="form-input" placeholder="e.g. March for Climate Justice" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date & Time *</label>
+            <input type="datetime-local" class="form-input" id="eventStart" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date & Time *</label>
+            <input type="datetime-local" class="form-input" id="eventEnd" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sponsoring Organization</label>
+          <input type="text" class="form-input" value="Tempe Rising Indivisible" id="sponsorOrg">
+          <p class="form-hint">Defaults to your organization. Events you host will display a verified badge.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Event Description *</label>
+          <textarea class="form-textarea" placeholder="Describe the event, its goals, and what attendees can expect..." required></textarea>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">📍</span> Location</div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" id="hideAddressCheck" onchange="toggleAddressVisibility()">
+            Require registration to see the address
+          </label>
+        </div>
+        <div class="form-group" id="addressGroup">
+          <label class="form-label">Address *</label>
+          <input type="text" class="form-input" id="addressInput" placeholder="123 Main St, Phoenix, AZ 85001" required>
+          <p class="form-hint">Full street address with city and ZIP for map integration</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Parking Information</label>
+          <textarea class="form-textarea" rows="2" placeholder="e.g. Free street parking available on 3rd Ave, paid lot at..."></textarea>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">🔗</span> Links</div>
+        <div class="form-group">
+          <label class="form-label">Event Flyer URL</label>
+          <input type="url" class="form-input" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Organization / Event Website</label>
+          <input type="url" class="form-input" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registration Link</label>
+          <input type="url" class="form-input" id="regLink" placeholder="https://...">
+          <div style="margin-top: 8px;">
+            <label class="form-check">
+              <input type="checkbox" id="regRequiredCheck">
+              Registration is required
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- What to Bring -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">🎒</span> What to Bring</div>
+        <div class="chip-group" id="bringChips">
+          <button type="button" class="chip selected" onclick="toggleChip(this)">☀️ Sunscreen <span class="chip-x">✕</span></button>
+          <button type="button" class="chip selected" onclick="toggleChip(this)">🧴 Water <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🔇 Hearing Protection <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">✊ Protest Signs <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🧢 Hat / Sun Shade <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🩹 First Aid Kit <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">📱 Portable Charger <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🧤 Comfortable Shoes <span class="chip-x">✕</span></button>
+          <button type="button" class="add-chip-btn" onclick="addCustomChip('bringChips')">+ Add Item</button>
+        </div>
+      </div>
+
+      <!-- What NOT to Bring -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">🚫</span> What NOT to Bring</div>
+        <div class="chip-group" id="noBringChips">
+          <button type="button" class="chip selected" onclick="toggleChip(this)">🔫 Visible Weapons <span class="chip-x">✕</span></button>
+          <button type="button" class="chip selected" onclick="toggleChip(this)">🔒 Concealed Carry Weapons <span class="chip-x">✕</span></button>
+          <button type="button" class="chip selected" onclick="toggleChip(this)">📢 Megaphones / Speakers <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🐕 Pets <span class="chip-x">✕</span></button>
+          <button type="button" class="chip" onclick="toggleChip(this)">🍺 Alcohol <span class="chip-x">✕</span></button>
+          <button type="button" class="add-chip-btn" onclick="addCustomChip('noBringChips')">+ Add Item</button>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-section">
+        <div class="form-section-title"><span class="icon">📝</span> Notes from the Organizer</div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <textarea class="form-textarea" rows="4" placeholder="Any additional information, instructions, or notes for attendees..."></textarea>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" onclick="saveEvent('draft')">💾 Save as Draft</button>
+        <button type="button" class="btn btn-primary" onclick="saveEvent('submitted')">🚀 Submit for Review</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MY EVENTS LIST -->
+  <div id="section-myEvents" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">My Events</h2>
+        <p class="section-subtitle">Manage events you've created</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-sm" id="archiveToggle" onclick="toggleArchivedEvents()">Show Archived</button>
+      </div>
+    </div>
+    <div id="myEventsList"></div>
+    <div id="loadMoreEvents" style="text-align: center; margin-top: 16px; display: none;">
+      <button class="btn btn-ghost" onclick="loadMoreEvents()">Load 20 More Events</button>
+    </div>
+  </div>
+
+  <!-- CONTACT US -->
+  <div id="section-contact" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Contact Us</h2>
+        <p class="section-subtitle">Send us a message or review your past conversations</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" onclick="openModal('newMessageModal')">+ New Message</button>
+        <button class="btn btn-secondary btn-sm" id="contactArchiveToggle" onclick="toggleArchivedTopics()">Show Archived</button>
+      </div>
+    </div>
+    <div id="contactList"></div>
+    <div id="contactThread" style="display: none;"></div>
+  </div>
+
+</main>
+
+<!-- ======= MODALS ======= -->
+
+<!-- PURPOSE MODAL -->
+<div class="modal-overlay" id="purposeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Our Purpose</h2>
+      <button class="modal-close" onclick="closeModal('purposeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 16px; line-height: 1.7;">
+        There are many organizations throughout the Phoenix metro that hold events, rallies, protests, and marches. Finding these events can be challenging — each organization uses different communication channels, from social media to email lists to word of mouth.
+      </p>
+      <p style="margin-bottom: 16px; line-height: 1.7;">
+        We built <strong>Phoenix Resist Events</strong> to solve this problem by creating a single, unified event calendar for our community. Our goal is to make civic engagement as easy as possible by removing barriers to finding out what's happening and when.
+      </p>
+      <p style="line-height: 1.7;">
+        This project is <strong>open source</strong> and community-driven. If your organization would like to participate, hit the <em>Enroll Organization</em> button to get started, or reach out through our Contact page.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC MODAL -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Sync with Your Phone</h2>
+      <button class="modal-close" onclick="closeModal('syncModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 20px; color: var(--text-muted);">Subscribe to our event calendar to get automatic updates on your phone or computer.</p>
+      <div class="sync-options">
+        <div class="sync-option" onclick="copyCalUrl('ical')">
+          <div class="sync-option-icon">📱</div>
+          <h4>Apple Calendar</h4>
+          <p>Subscribe via iCal</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('gcal')">
+          <div class="sync-option-icon">📅</div>
+          <h4>Google Calendar</h4>
+          <p>Add to Google Calendar</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('outlook')">
+          <div class="sync-option-icon">💻</div>
+          <h4>Outlook</h4>
+          <p>Subscribe via Outlook</p>
+        </div>
+        <div class="sync-option" onclick="copyCalUrl('ical')">
+          <div class="sync-option-icon">🔗</div>
+          <h4>Copy iCal URL</h4>
+          <p>For any calendar app</p>
+        </div>
+      </div>
+      <div style="margin-top: 16px; padding: 12px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <p style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); word-break: break-all;">webcal://phoenixresist.events/cal/subscribe.ics</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>My Profile</h2>
+      <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Organization Public Name</label>
+        <input type="text" class="form-input" value="Tempe Rising Indivisible">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organization Website</label>
+        <input type="url" class="form-input" placeholder="https://..." value="https://temperising.org">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Social Links</label>
+        <div class="social-inputs">
+          <div class="social-input-group">
+            <div class="social-icon">FB</div>
+            <input type="url" class="form-input" placeholder="Facebook URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">IG</div>
+            <input type="url" class="form-input" placeholder="Instagram URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">SC</div>
+            <input type="url" class="form-input" placeholder="Snapchat URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">SG</div>
+            <input type="url" class="form-input" placeholder="Signal group link">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">RD</div>
+            <input type="url" class="form-input" placeholder="Reddit URL">
+          </div>
+          <div class="social-input-group">
+            <div class="social-icon">X</div>
+            <input type="url" class="form-input" placeholder="X / Twitter URL">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('profileModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('profileModal'); showToast('Profile updated!')">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW MESSAGE MODAL -->
+<div class="modal-overlay" id="newMessageModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>New Message</h2>
+      <button class="modal-close" onclick="closeModal('newMessageModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Topic *</label>
+        <input type="text" class="form-input" placeholder="e.g. Question about event approval process">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message *</label>
+        <textarea class="form-textarea" rows="5" placeholder="Type your message here..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newMessageModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('newMessageModal'); showToast('Message sent!')">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMATION DIALOG -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Archive Event?</h3>
+    <p id="confirmMessage">This action is permanent. Archived events will be automatically deleted after 12 months.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirmBtn" onclick="closeConfirm(); showToast('Event archived')">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= CONFIG =======
+const SITE_CONFIG = {
+  siteName: 'Phoenix Resist Events',
+  domain: 'phoenixresist.events',
+  archiveRetentionMonths: 12,
+  currentUser: {
+    email: 'temperisingindivisible@gmail.com',
+    publicName: 'Tempe Rising Indivisible',
+    isOrganizer: true
+  }
+};
+
+// ======= MOCK DATA =======
+const MOCK_ORGS = [
+  { name: 'Tempe Rising Indivisible', abbr: 'TRI', website: 'https://temperising.org', socials: { fb: '#', ig: '#' } },
+  { name: 'AZ Resist Coalition', abbr: 'ARC', website: 'https://azresist.org', socials: { fb: '#', x: '#' } },
+  { name: 'Phoenix Women\'s March', abbr: 'PW', website: '#', socials: { ig: '#' } },
+  { name: 'Desert Defenders', abbr: 'DD', website: '#', socials: { fb: '#', rd: '#' } },
+  { name: 'Scottsdale Progressives', abbr: 'SP', website: '#', socials: { fb: '#' } },
+  { name: 'Mesa Community Action', abbr: 'MCA', website: '#', socials: {} },
+  { name: 'Chandler for Change', abbr: 'CC', website: '#', socials: { ig: '#' } },
+  { name: 'Valley Votes Matter', abbr: 'VVM', website: '#', socials: { fb: '#', x: '#' } },
+];
+
+const MOCK_EVENTS = [
+  {
+    id: 1, title: 'Rally for Public Education Funding', org: 'Tempe Rising Indivisible', orgIsHost: true,
+    date: '2026-02-14', startTime: '10:00 AM', endTime: '1:00 PM',
+    address: 'Arizona State Capitol, 1700 W Washington St, Phoenix, AZ 85007',
+    desc: 'Join us at the State Capitol to demand increased funding for Arizona\'s public schools. Speakers include educators, parents, and local officials.',
+    regRequired: false, status: 'published',
+    bring: ['Sunscreen', 'Water', 'Protest Signs'], noBring: ['Visible Weapons', 'Megaphones / Speakers'],
+    notes: 'Arrive by 9:30 AM for sign-making. Wheelchair accessible entrance on the west side.'
+  },
+  {
+    id: 2, title: 'Community Town Hall: Healthcare Access', org: 'AZ Resist Coalition', orgIsHost: false,
+    date: '2026-02-15', startTime: '6:00 PM', endTime: '8:30 PM',
+    address: 'Tempe Public Library, 3500 S Rural Rd, Tempe, AZ 85282',
+    desc: 'An open town hall to discuss healthcare access challenges in Maricopa County. Local health advocates and policy experts will present.',
+    regRequired: true, status: 'published',
+    bring: ['Water'], noBring: ['Visible Weapons'],
+    notes: 'Interpretation available in Spanish. Childcare provided.'
+  },
+  {
+    id: 3, title: 'Voter Registration Drive — ASU', org: 'Valley Votes Matter', orgIsHost: false,
+    date: '2026-02-16', startTime: '9:00 AM', endTime: '4:00 PM',
+    address: 'ASU Memorial Union, 301 E Orange St, Tempe, AZ 85281',
+    desc: 'Volunteer with us to register voters on the ASU campus. Training provided for new volunteers.',
+    regRequired: false, status: 'published',
+    bring: ['Sunscreen', 'Water', 'Comfortable Shoes'], noBring: [],
+    notes: 'Shifts available: 9-12, 12-2, 2-4. Sign up for any or all.'
+  },
+  {
+    id: 4, title: 'March for Reproductive Rights', org: 'Phoenix Women\'s March', orgIsHost: false,
+    date: '2026-02-22', startTime: '11:00 AM', endTime: '2:00 PM',
+    address: 'Wesley Bolin Memorial Plaza, 1700 W Washington St, Phoenix, AZ',
+    desc: 'March through downtown Phoenix in solidarity for reproductive rights. Guest speakers and live music to follow.',
+    regRequired: false, status: 'published',
+    bring: ['Sunscreen', 'Water', 'Protest Signs', 'Hearing Protection', 'Hat / Sun Shade'], noBring: ['Visible Weapons', 'Concealed Carry Weapons', 'Megaphones / Speakers'],
+    notes: 'Meet at Wesley Bolin Plaza. March route is 1.5 miles, flat terrain.'
+  },
+  {
+    id: 5, title: 'Climate Action Planning Session', org: 'Desert Defenders', orgIsHost: false,
+    date: '2026-02-28', startTime: '7:00 PM', endTime: '9:00 PM',
+    address: 'Changing Hands Bookstore, 6428 S McClintock Dr, Tempe, AZ 85283',
+    desc: 'Planning session for upcoming spring climate actions. All experience levels welcome.',
+    regRequired: false, status: 'published',
+    bring: [], noBring: [],
+    notes: 'Light refreshments provided.'
+  },
+  {
+    id: 6, title: 'Know Your Rights Workshop', org: 'Tempe Rising Indivisible', orgIsHost: true,
+    date: '2026-03-05', startTime: '6:00 PM', endTime: '8:00 PM',
+    address: 'Tempe History Museum, 809 E Southern Ave, Tempe, AZ 85282',
+    desc: 'Learn about your rights during protests, at the border, and during encounters with law enforcement. Legal experts will present and take questions.',
+    regRequired: true, status: 'review',
+    bring: [], noBring: [],
+    notes: 'Materials in English and Spanish.'
+  },
+  {
+    id: 7, title: 'Spring Canvassing Kickoff', org: 'Tempe Rising Indivisible', orgIsHost: true,
+    date: '2026-03-12', startTime: '9:00 AM', endTime: '12:00 PM',
+    address: '', desc: 'Kickoff event for spring canvassing campaign. Training and route assignments.',
+    regRequired: true, status: 'draft',
+    bring: ['Water', 'Comfortable Shoes'], noBring: [],
+    notes: 'Address will be shared upon registration.'
+  },
+];
+
+// Events owned by current org (for My Events)
+const MY_EVENTS = MOCK_EVENTS.filter(e => e.orgIsHost).concat([
+  { id: 8, title: 'Summer Strategy Meeting', org: 'Tempe Rising Indivisible', orgIsHost: true, date: '2025-12-10', startTime: '7:00 PM', endTime: '9:00 PM', status: 'published', desc: '', address: '' },
+  { id: 9, title: 'Holiday Volunteer Appreciation', org: 'Tempe Rising Indivisible', orgIsHost: true, date: '2025-12-18', startTime: '5:00 PM', endTime: '8:00 PM', status: 'published', desc: '', address: '' },
+  { id: 10, title: 'End of Year Fundraiser', org: 'Tempe Rising Indivisible', orgIsHost: true, date: '2025-11-15', startTime: '6:00 PM', endTime: '9:00 PM', status: 'archived', desc: '', address: '' },
+]);
+
+const MOCK_MESSAGES = [
+  {
+    id: 1, topic: 'Event approval timeline question', createdAt: '2026-02-10', lastModifiedBy: 'Site Admin', lastModifiedAt: '2026-02-11 3:42 PM',
+    messages: [
+      { from: 'org', text: 'Hi, how long does event approval typically take? I submitted an event 3 days ago.', time: '2026-02-10 2:15 PM' },
+      { from: 'admin', name: 'Site Admin', text: 'Hi! Approvals usually take 24-48 hours. Let me check on yours — which event is it?', time: '2026-02-10 4:30 PM' },
+      { from: 'org', text: 'It\'s the "Know Your Rights Workshop" scheduled for March 5th.', time: '2026-02-11 9:00 AM' },
+      { from: 'admin', name: 'Site Admin', text: 'Found it! It\'s in the review queue. I\'ll prioritize it — you should see it approved by end of day. Thanks for your patience!', time: '2026-02-11 3:42 PM' },
+    ]
+  },
+  {
+    id: 2, topic: 'Adding a co-sponsor to event', createdAt: '2026-02-05', lastModifiedBy: 'Tempe Rising Indivisible', lastModifiedAt: '2026-02-05 10:20 AM',
+    messages: [
+      { from: 'org', text: 'Is there a way to list AZ Resist Coalition as a co-sponsor on our Rally for Public Education event?', time: '2026-02-05 10:20 AM' },
+    ]
+  },
+];
+
+// ======= STATE =======
+let currentSection = 'home';
+let calMonth = new Date().getMonth();
+let calYear = new Date().getFullYear();
+let showArchived = false;
+let showArchivedTopics = false;
+let eventsPage = 1;
+let viewingThread = null;
+
+// ======= SECTION NAV =======
+function showSection(section) {
+  currentSection = section;
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('section-' + section);
+  if (el) {
+    el.classList.add('active');
+    el.classList.add('fade-in');
+  }
+
+  // Update nav active state
+  document.querySelectorAll('.nav-btn[data-section]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === section);
+  });
+
+  // Section-specific init
+  if (section === 'today') renderTodayEvents();
+  if (section === 'calendar') renderCalendar();
+  if (section === 'orgs') renderOrgs();
+  if (section === 'myEvents') { eventsPage = 1; renderMyEvents(); }
+  if (section === 'contact') { viewingThread = null; renderContact(); }
+  if (section === 'home') renderHomeEvents();
+}
+
+// ======= MODAL =======
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  });
+});
+
+// ======= TOAST =======
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ======= CONFIRM DIALOG =======
+function showConfirm(title, message, btnText, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = btnText;
+  btn.onclick = () => { closeConfirm(); onConfirm(); };
+  document.getElementById('confirmDialog').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmDialog').classList.remove('open');
+}
+
+// ======= EVENT CARDS =======
+function createEventCard(event) {
+  const isHostOrg = event.org === SITE_CONFIG.currentUser.publicName && event.orgIsHost;
+  return `
+    <div class="event-card" onclick="openEventDetail(${event.id})">
+      <div class="event-card-date">${formatDate(event.date)} · ${event.startTime} – ${event.endTime}</div>
+      <div class="event-card-title">${event.title}</div>
+      <div class="event-card-org">
+        ${event.org}
+        ${isHostOrg ? '<span class="verified-badge" title="Event added by hosting organization">✓</span>' : ''}
+      </div>
+      <div class="event-card-desc">${event.desc}</div>
+      <div class="event-card-footer">
+        ${event.regRequired ? '<span class="event-tag reg-required">Registration Required</span>' : ''}
+        ${event.address ? '<span class="event-tag">📍 In Person</span>' : '<span class="event-tag">📍 See Details</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function openEventDetail(id) {
+  const event = MOCK_EVENTS.find(e => e.id === id);
+  if (!event) return;
+  const isHostOrg = event.org === SITE_CONFIG.currentUser.publicName && event.orgIsHost;
+
+  const bringHtml = event.bring && event.bring.length > 0
+    ? `<div style="margin-top:16px;"><strong style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);">What to Bring</strong><div class="chip-group" style="margin-top:6px;">${event.bring.map(b => `<span class="chip selected" style="cursor:default;">${b}</span>`).join('')}</div></div>`
+    : '';
+
+  const noBringHtml = event.noBring && event.noBring.length > 0
+    ? `<div style="margin-top:16px;"><strong style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);">What NOT to Bring</strong><div class="chip-group" style="margin-top:6px;">${event.noBring.map(b => `<span class="chip selected" style="cursor:default;background:rgba(224,85,85,0.08);border-color:rgba(224,85,85,0.2);color:#E05555;">${b}</span>`).join('')}</div></div>`
+    : '';
+
+  const detailHTML = `
+    <div class="modal-overlay open" id="eventDetailModal" onclick="if(event.target===this){this.remove();document.body.style.overflow='';}">
+      <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header">
+          <h2>${event.title}</h2>
+          <button class="modal-close" onclick="document.getElementById('eventDetailModal').remove();document.body.style.overflow='';">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <span style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-muted);">${event.org}</span>
+            ${isHostOrg ? '<span class="verified-badge" title="Event added by hosting organization">✓</span>' : ''}
+            ${event.regRequired ? '<span class="event-tag reg-required" style="margin-left:auto;">Registration Required</span>' : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin-bottom:16px;font-size:14px;">
+            <span style="color:var(--text-dim);font-family:var(--font-display);font-size:12px;font-weight:600;">DATE</span>
+            <span>${formatDate(event.date)}</span>
+            <span style="color:var(--text-dim);font-family:var(--font-display);font-size:12px;font-weight:600;">TIME</span>
+            <span>${event.startTime} – ${event.endTime}</span>
+            ${event.address ? `<span style="color:var(--text-dim);font-family:var(--font-display);font-size:12px;font-weight:600;">LOCATION</span><span>${event.address}</span>` : ''}
+          </div>
+          <p style="line-height:1.7;color:var(--text-muted);">${event.desc}</p>
+          ${bringHtml}
+          ${noBringHtml}
+          ${event.notes ? `<div style="margin-top:20px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);"><strong style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);display:block;margin-bottom:6px;">Notes from the Organizer</strong><p style="font-size:14px;color:var(--text-muted);line-height:1.6;">${event.notes}</p></div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', detailHTML);
+  document.body.style.overflow = 'hidden';
+}
+
+// ======= HOME =======
+function renderHomeEvents() {
+  const published = MOCK_EVENTS.filter(e => e.status === 'published').sort((a, b) => new Date(a.date) - new Date(b.date));
+  document.getElementById('homeEventsGrid').innerHTML = published.map(createEventCard).join('');
+}
+
+// ======= TODAY'S EVENTS =======
+function renderTodayEvents() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  document.getElementById('todayDateLabel').textContent = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const todayEvents = MOCK_EVENTS.filter(e => e.date === todayStr && e.status === 'published');
+  if (todayEvents.length === 0) {
+    document.getElementById('todayEventsGrid').innerHTML = '';
+    document.getElementById('todayEmpty').style.display = 'block';
+  } else {
+    document.getElementById('todayEmpty').style.display = 'none';
+    document.getElementById('todayEventsGrid').innerHTML = todayEvents.map(createEventCard).join('');
+  }
+}
+
+// ======= CALENDAR =======
+function renderCalendar() {
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  document.getElementById('calMonthLabel').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  let html = dayNames.map(d => `<div class="cal-header">${d}</div>`).join('');
+
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev - i}</div></div>`;
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = dateStr === todayStr;
+    const dayEvents = MOCK_EVENTS.filter(e => e.date === dateStr && e.status === 'published');
+    const hasEvents = dayEvents.length > 0;
+
+    html += `<div class="cal-day ${isToday ? 'today' : ''} ${hasEvents ? 'has-events' : ''}">
+      <div class="cal-day-num">${d}</div>
+      ${dayEvents.slice(0, 2).map(e => `<div class="cal-event-dot">${e.title}</div>`).join('')}
+      ${dayEvents.length > 2 ? `<div class="cal-event-dot">+${dayEvents.length - 2} more</div>` : ''}
+    </div>`;
+  }
+
+  // Next month fill
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
+  }
+
+  document.getElementById('calendarGrid').innerHTML = html;
+}
+
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+// ======= ORGANIZATIONS =======
+function renderOrgs() {
+  document.getElementById('orgsList').innerHTML = MOCK_ORGS.map(org => `
+    <div class="org-card">
+      <div class="org-avatar">${org.abbr}</div>
+      <div class="org-info">
+        <h4>${org.name}</h4>
+        <p>${org.website !== '#' ? org.website : 'No website listed'}</p>
+      </div>
+      <div class="org-links">
+        ${org.socials.fb ? '<a href="#" class="org-link-icon" title="Facebook">FB</a>' : ''}
+        ${org.socials.ig ? '<a href="#" class="org-link-icon" title="Instagram">IG</a>' : ''}
+        ${org.socials.x ? '<a href="#" class="org-link-icon" title="X / Twitter">X</a>' : ''}
+        ${org.socials.rd ? '<a href="#" class="org-link-icon" title="Reddit">RD</a>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ======= MY EVENTS =======
+function renderMyEvents() {
+  let events = MY_EVENTS.filter(e => showArchived ? true : e.status !== 'archived');
+
+  // Sort: future first, then past
+  events.sort((a, b) => {
+    const now = new Date().toISOString().split('T')[0];
+    const aFuture = a.date >= now;
+    const bFuture = b.date >= now;
+    if (aFuture && !bFuture) return -1;
+    if (!aFuture && bFuture) return 1;
+    if (aFuture) return new Date(a.date) - new Date(b.date);
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  const pageEvents = events.slice(0, eventsPage * 20);
+
+  document.getElementById('myEventsList').innerHTML = pageEvents.map(e => {
+    const statusClass = e.status === 'published' ? 'status-published' : e.status === 'review' ? 'status-review' : e.status === 'draft' ? 'status-draft' : 'status-archived';
+    const statusLabel = e.status === 'published' ? 'Published' : e.status === 'review' ? 'In Review' : e.status === 'draft' ? 'Draft' : 'Archived';
+
+    return `
+      <div class="event-list-item">
+        <div class="event-list-date">${formatDate(e.date)}</div>
+        <div class="event-list-name">${e.title}</div>
+        <span class="event-list-status ${statusClass}">${statusLabel}</span>
+        <div class="event-list-actions">
+          ${e.status !== 'archived' ? `
+            <button class="btn btn-ghost btn-xs" onclick="editEvent(${e.id})" title="Edit">✏️</button>
+            <button class="btn btn-ghost btn-xs" onclick="cloneEvent(${e.id})" title="Clone">📋</button>
+            <button class="btn btn-ghost btn-xs" onclick="archiveEvent(${e.id})" title="Archive">🗃️</button>
+          ` : '<span style="font-size:11px;color:var(--text-dim);font-style:italic;">Archived</span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('loadMoreEvents').style.display = events.length > pageEvents.length ? 'block' : 'none';
+  document.getElementById('archiveToggle').textContent = showArchived ? 'Hide Archived' : 'Show Archived';
+}
+
+function toggleArchivedEvents() {
+  showArchived = !showArchived;
+  renderMyEvents();
+}
+
+function loadMoreEvents() {
+  eventsPage++;
+  renderMyEvents();
+}
+
+function editEvent(id) {
+  const event = MY_EVENTS.find(e => e.id === id);
+  if (!event) return;
+  document.getElementById('eventFormTitle').textContent = 'Edit Event: ' + event.title;
+  showSection('newEvent');
+}
+
+function cloneEvent(id) {
+  const event = MY_EVENTS.find(e => e.id === id);
+  if (!event) return;
+  document.getElementById('eventFormTitle').textContent = 'Clone Event: ' + event.title;
+  // Clear date pickers for clone
+  document.getElementById('eventStart').value = '';
+  document.getElementById('eventEnd').value = '';
+  showSection('newEvent');
+  showToast('Event cloned — set new dates');
+}
+
+function archiveEvent(id) {
+  showConfirm(
+    'Archive Event?',
+    `This action is permanent. Archived events will be automatically deleted after ${SITE_CONFIG.archiveRetentionMonths} months and cannot be recovered.`,
+    'Archive Event',
+    () => {
+      const event = MY_EVENTS.find(e => e.id === id);
+      if (event) event.status = 'archived';
+      renderMyEvents();
+      showToast('Event archived');
+    }
+  );
+}
+
+// ======= CONTACT =======
+function renderContact() {
+  const container = document.getElementById('contactList');
+  const threadContainer = document.getElementById('contactThread');
+
+  if (viewingThread !== null) {
+    container.style.display = 'none';
+    threadContainer.style.display = 'block';
+    renderThread(viewingThread);
+    return;
+  }
+
+  container.style.display = 'block';
+  threadContainer.style.display = 'none';
+
+  let topics = MOCK_MESSAGES;
+  container.innerHTML = topics.map(m => `
+    <div class="msg-list-item" onclick="viewThread(${m.id})">
+      <div class="msg-topic">${m.topic}</div>
+      <div class="msg-meta">
+        <div style="font-weight:600;">${m.lastModifiedBy}</div>
+        <div>${m.lastModifiedAt}</div>
+      </div>
+      <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation(); archiveTopic(${m.id})" title="Archive">🗃️</button>
+    </div>
+  `).join('');
+
+  document.getElementById('contactArchiveToggle').textContent = showArchivedTopics ? 'Hide Archived' : 'Show Archived';
+}
+
+function viewThread(id) {
+  viewingThread = id;
+  renderContact();
+}
+
+function renderThread(id) {
+  const thread = MOCK_MESSAGES.find(m => m.id === id);
+  if (!thread) return;
+
+  const threadContainer = document.getElementById('contactThread');
+  threadContainer.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <button class="btn btn-ghost btn-sm" onclick="viewingThread=null; renderContact();">← Back to Messages</button>
+      <h3 style="font-size: 18px; font-weight: 700; margin-top: 12px;">${thread.topic}</h3>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <textarea class="form-textarea" rows="2" placeholder="Type your reply..." style="min-height:60px;flex:1;"></textarea>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="btn btn-primary btn-sm" onclick="showToast('Reply sent!')">Send</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewingThread=null; renderContact();">Cancel</button>
+      </div>
+    </div>
+    <div>
+      ${thread.messages.slice().reverse().map(msg => `
+        <div class="msg-bubble ${msg.from === 'org' ? 'from-org' : 'from-admin'}">
+          ${msg.text}
+          <div class="msg-bubble-meta">${msg.from === 'admin' ? msg.name + ' · ' : ''}${msg.time}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function archiveTopic(id) {
+  showConfirm(
+    'Archive Topic?',
+    `This will hide the topic from your message list. Archived topics will be deleted after ${SITE_CONFIG.archiveRetentionMonths} months.`,
+    'Archive Topic',
+    () => {
+      MOCK_MESSAGES.splice(MOCK_MESSAGES.findIndex(m => m.id === id), 1);
+      renderContact();
+      showToast('Topic archived');
+    }
+  );
+}
+
+function toggleArchivedTopics() {
+  showArchivedTopics = !showArchivedTopics;
+  renderContact();
+}
+
+// ======= FORM HELPERS =======
+function toggleAddressVisibility() {
+  const checked = document.getElementById('hideAddressCheck').checked;
+  const input = document.getElementById('addressInput');
+  const group = document.getElementById('addressGroup');
+  if (checked) {
+    input.value = '';
+    input.disabled = true;
+    input.required = false;
+    group.style.opacity = '0.4';
+  } else {
+    input.disabled = false;
+    input.required = true;
+    group.style.opacity = '1';
+  }
+}
+
+function toggleChip(el) {
+  el.classList.toggle('selected');
+}
+
+function addCustomChip(containerId) {
+  const text = prompt('Enter item:');
+  if (!text || !text.trim()) return;
+  const container = document.getElementById(containerId);
+  const addBtn = container.querySelector('.add-chip-btn');
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'chip selected custom';
+  chip.innerHTML = `${text.trim()} <span class="chip-x" style="display:inline;">✕</span>`;
+  chip.onclick = () => toggleChip(chip);
+  container.insertBefore(chip, addBtn);
+}
+
+function saveEvent(type) {
+  const label = type === 'draft' ? 'Draft saved!' : 'Event submitted for review!';
+  showToast(label);
+  if (type === 'submitted') {
+    setTimeout(() => showSection('myEvents'), 800);
+  }
+}
+
+function copyCalUrl(type) {
+  showToast('Calendar URL copied!');
+}
+
+// ======= UTILITIES =======
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ======= INIT =======
+renderHomeEvents();
+</script>
+</body>
+</html>
