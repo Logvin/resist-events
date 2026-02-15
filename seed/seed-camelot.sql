@@ -3,7 +3,7 @@
 -- Site Config
 INSERT INTO site_config (key, value) VALUES ('site_name', 'Camelot Resist Events');
 INSERT INTO site_config (key, value) VALUES ('site_region', 'Camelot');
-INSERT INTO site_config (key, value) VALUES ('domain', 'camelot-resist.events');
+INSERT INTO site_config (key, value) VALUES ('domain', 'cityresist.events');
 INSERT INTO site_config (key, value) VALUES ('archive_retention_months', '12');
 INSERT INTO site_config (key, value) VALUES ('flyer_auto_delete_days', '30');
 INSERT INTO site_config (key, value) VALUES ('purpose_text', '
