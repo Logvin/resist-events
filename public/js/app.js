@@ -16,6 +16,19 @@ let editingEventId = null;
 let cloningEvent = false;
 let pendingMessageOrgId = null;
 let pendingMessageEventId = null;
+let _currentDetailEvent = null;
+
+// ======= SOCIAL ICON SVGS =======
+const socialSvgs = {
+  fb: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
+  ig: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>',
+  sc: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301a.602.602 0 01.257-.058c.21 0 .42.089.554.239.18.18.244.458.164.694-.135.449-.61.795-1.411 1.024a5.39 5.39 0 01-.534.12c-.164.03-.296.057-.404.09-.372.12-.433.36-.433.584 0 .135.03.27.09.42.57 1.199 1.425 2.175 2.46 2.805.36.21.72.36 1.08.449.18.045.33.12.42.24.12.135.165.33.12.51-.135.6-1.11.899-1.62 1.05-.12.03-.21.06-.27.084l-.015.03c-.12.255-.24.54-.615.66a1.126 1.126 0 01-.36.06c-.27 0-.6-.105-1.005-.225-.48-.135-.93-.254-1.32-.254-.18 0-.33.015-.45.06a6.502 6.502 0 01-2.58.51c-.06 0-.12 0-.195-.016h-.18a6.607 6.607 0 01-2.58-.51c-.12-.045-.27-.06-.45-.06-.39 0-.84.12-1.32.255-.405.12-.735.225-1.005.225a1.126 1.126 0 01-.36-.06c-.375-.12-.495-.405-.615-.66l-.015-.03a2.656 2.656 0 00-.27-.084c-.51-.15-1.485-.45-1.62-1.05-.045-.18 0-.375.12-.51.09-.12.24-.195.42-.24.36-.084.72-.24 1.08-.449 1.035-.63 1.89-1.606 2.46-2.805.06-.135.09-.27.09-.42 0-.224-.06-.464-.434-.584a4.79 4.79 0 01-.403-.09 5.39 5.39 0 01-.534-.12c-.801-.229-1.276-.575-1.411-1.024a.657.657 0 01.164-.694.564.564 0 01.554-.24c.105 0 .18.015.256.06.374.18.734.3 1.035.3.199 0 .324-.046.399-.09l-.03-.509-.003-.061c-.104-1.628-.23-3.654.3-4.846C7.648 1.07 11.015.793 12.006.793h.2z"/></svg>',
+  sg: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 3.6c2.34 0 4.242 1.902 4.242 4.242V9.6h.558a.6.6 0 01.6.6v7.2a.6.6 0 01-.6.6H7.2a.6.6 0 01-.6-.6v-7.2a.6.6 0 01.6-.6h.558V7.842C7.758 5.502 9.66 3.6 12 3.6zm0 1.8c-1.35 0-2.442 1.092-2.442 2.442V9.6h4.884V7.842C14.442 6.492 13.35 5.4 12 5.4z"/></svg>',
+  rd: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 01-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 01.042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 014.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 01.14-.197.35.35 0 01.238-.042l2.906.617a1.214 1.214 0 011.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 00-.231.094.33.33 0 000 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 000-.462.342.342 0 00-.461 0c-.545.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 00-.206-.095z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+};
+
+const socialTitles = { fb: 'Facebook', ig: 'Instagram', sc: 'Snapchat', sg: 'Signal', rd: 'Reddit', x: 'X / Twitter' };
 
 // ======= API HELPERS =======
 async function api(path, options = {}) {
@@ -154,6 +167,7 @@ function createEventCard(event) {
       </div>
       <div class="event-card-desc">${escHtml(desc)}</div>
       <div class="event-card-footer">
+        ${event.event_type ? `<span class="event-tag">${escHtml(formatEventType(event.event_type))}</span>` : ''}
         ${event.reg_required ? '<span class="event-tag reg-required">Registration Required</span>' : ''}
         ${event.address ? '<span class="event-tag">In Person</span>' : '<span class="event-tag virtual-tag">Virtual</span>'}
       </div>
@@ -169,6 +183,7 @@ async function openEventDetail(id, footerHtml) {
     event = cachedEvents.find(e => e.id === id);
   }
   if (!event) return;
+  _currentDetailEvent = event;
 
   const bringItems = event.bring_items || [];
   const noBringItems = event.no_bring_items || [];
@@ -181,9 +196,9 @@ async function openEventDetail(id, footerHtml) {
     ? `<div style="margin-top:16px;"><strong style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);">What NOT to Bring</strong><div class="chip-group" style="margin-top:6px;">${noBringItems.map(b => `<span class="chip selected" style="cursor:default;background:rgba(224,85,85,0.08);border-color:rgba(224,85,85,0.2);color:#E05555;">${escHtml(b)}</span>`).join('')}</div></div>`
     : '';
 
-  // Show edit button for organizers (own org events) and admins
+  // Show edit button only if no custom footer is provided (avoid duplicates)
   const canEdit = DemoSession.role === 'admin' || (DemoSession.role === 'organizer' && event.org_id === DemoSession.orgId);
-  const editBtnHtml = canEdit ? `<button class="btn btn-ghost btn-xs" style="margin-right:8px;" onclick="closeEventDetailModal(); editEvent(${event.id})">Edit</button>` : '';
+  const editBtnHtml = (canEdit && !footerHtml) ? `<button class="btn btn-ghost btn-xs" style="margin-right:8px;" onclick="closeEventDetailModal(); editEvent(${event.id})">Edit</button>` : '';
 
   let finalFooterHtml = footerHtml || '';
   if (canEdit && !footerHtml) {
@@ -219,12 +234,42 @@ async function openEventDetail(id, footerHtml) {
           ${noBringHtml}
           ${event.notes ? `<div style="margin-top:20px;padding:14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);"><strong style="font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);display:block;margin-bottom:6px;">Notes from the Organizer</strong><p style="font-size:14px;color:var(--text-muted);line-height:1.6;">${escHtml(event.notes)}</p></div>` : ''}
         </div>
+        <div class="share-actions" id="shareActionsBar">
+        </div>
         ${footerSection}
       </div>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', detailHTML);
   document.body.style.overflow = 'hidden';
+
+  // Populate share-actions with role-based buttons
+  const hasExternalFlyer = !!event.flyer_url;
+  const hasGeneratedFlyer = !!event.generated_flyer_url;
+  const hasAnyFlyer = hasExternalFlyer || hasGeneratedFlyer;
+  const isOwner = DemoSession.role === 'admin' ||
+    (DemoSession.role === 'organizer' && event.org_id === DemoSession.orgId);
+
+  const shareBar = document.getElementById('shareActionsBar');
+  if (shareBar) {
+    let btns = '';
+    if (hasAnyFlyer) {
+      const flyerHref = hasExternalFlyer ? escAttr(event.flyer_url) : escAttr(event.generated_flyer_url);
+      btns += `<a class="btn btn-ghost btn-sm" href="${flyerHref}" target="_blank" rel="noopener" style="text-decoration:none;">&#x1F4E5; Download Flyer</a>`;
+    }
+    if (isOwner && !hasAnyFlyer) {
+      btns += `<button class="btn btn-ghost btn-sm" onclick="generateFlyer(_currentDetailEvent)">&#x1F5BC; Generate Flyer</button>`;
+    }
+    if (isOwner && hasGeneratedFlyer && !hasExternalFlyer) {
+      btns += `<button class="btn btn-ghost btn-sm" style="color:#E05555;" onclick="deleteGeneratedFlyer(${event.id})">&#x1F5D1; Delete Flyer</button>`;
+    }
+    btns += `<button class="btn btn-ghost btn-sm" onclick="copyEventDetails(_currentDetailEvent)">&#x1F4CB; Copy Details</button>`;
+    btns += `<button class="btn btn-ghost btn-sm" onclick="copyEventMarkdown(_currentDetailEvent)">&#x1F4DD; Copy Markdown</button>`;
+    if (isOwner && hasGeneratedFlyer) {
+      btns += `<p class="auto-delete-notice">Generated flyer auto-deletes ${AppConfig.flyerAutoDeleteDays} days after event ends.</p>`;
+    }
+    shareBar.innerHTML = btns;
+  }
 }
 
 function closeEventDetailModal() {
@@ -262,7 +307,7 @@ async function renderHomeEvents() {
 // ======= TODAY'S EVENTS =======
 async function renderTodayEvents() {
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   document.getElementById('todayDateLabel').textContent = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   await loadEvents();
@@ -334,16 +379,18 @@ async function renderOrgs() {
     const socials = org.socials || {};
     return `
       <div class="org-card">
-        <div class="org-avatar">${escHtml(org.abbreviation || '')}</div>
+        ${org.logo_url
+          ? `<img src="${escAttr(org.logo_url)}" class="org-avatar" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'org-avatar\\'>${escHtml(org.abbreviation || '')}</div>'">`
+          : `<div class="org-avatar">${escHtml(org.abbreviation || '')}</div>`
+        }
         <div class="org-info">
           <h4>${escHtml(org.name)}</h4>
           <p>${org.website ? escHtml(org.website) : 'No website listed'}</p>
         </div>
         <div class="org-links">
-          ${socials.fb ? `<a href="${escAttr(socials.fb)}" class="org-link-icon" title="Facebook" target="_blank" rel="noopener">FB</a>` : ''}
-          ${socials.ig ? `<a href="${escAttr(socials.ig)}" class="org-link-icon" title="Instagram" target="_blank" rel="noopener">IG</a>` : ''}
-          ${socials.x ? `<a href="${escAttr(socials.x)}" class="org-link-icon" title="X / Twitter" target="_blank" rel="noopener">X</a>` : ''}
-          ${socials.rd ? `<a href="${escAttr(socials.rd)}" class="org-link-icon" title="Reddit" target="_blank" rel="noopener">RD</a>` : ''}
+          ${['fb','ig','sc','sg','rd','x'].filter(k => socials[k]).map(k =>
+            `<a href="${escAttr(socials[k])}" class="org-link-icon social-${k}" title="${socialTitles[k]}" target="_blank" rel="noopener">${socialSvgs[k]}</a>`
+          ).join('')}
         </div>
       </div>
     `;
@@ -454,6 +501,9 @@ async function editEvent(id) {
   document.getElementById('regRequiredCheck').checked = !!event.reg_required;
   document.getElementById('eventNotes').value = event.notes || '';
 
+  // Set event type
+  setEventTypeValue(event.event_type || '');
+
   // Set bring chips
   setChipSelections('bringChips', event.bring_items || []);
   setChipSelections('noBringChips', event.no_bring_items || []);
@@ -468,6 +518,8 @@ function resetEventForm() {
   if (DemoSession.orgName) {
     document.getElementById('sponsorOrg').value = DemoSession.orgName;
   }
+  // Reset event type
+  setEventTypeValue('');
   // Reset virtual event
   document.getElementById('virtualEventCheck').checked = false;
   toggleVirtualEvent();
@@ -517,6 +569,9 @@ async function cloneEvent(id) {
   document.getElementById('regLink').value = event.reg_link || '';
   document.getElementById('regRequiredCheck').checked = !!event.reg_required;
   document.getElementById('eventNotes').value = event.notes || '';
+
+  // Set event type
+  setEventTypeValue(event.event_type || '');
 
   // Reset recurring for clone
   document.getElementById('recurringCheck').checked = false;
@@ -836,6 +891,7 @@ async function saveEvent(status) {
     notes: document.getElementById('eventNotes').value.trim(),
     bring_items: bringItems,
     no_bring_items: noBringItems,
+    event_type: getEventTypeValue(),
     status,
   };
 
@@ -888,10 +944,150 @@ async function saveEvent(status) {
   }
 }
 
-// ======= PROFILE =======
+// ======= ORG PROFILE =======
+let profileOrgId = null;
+
+async function openOrgProfile() {
+  await loadOrgs();
+
+  const select = document.getElementById('profileOrgSelect');
+
+  // For admins, show all orgs. For organizers, show their active memberships.
+  let orgOptions = [];
+  if (DemoSession.role === 'admin') {
+    orgOptions = cachedOrgs;
+  } else {
+    try {
+      const myOrgs = await api('/users/my-orgs');
+      const myOrgIds = new Set(myOrgs.map(o => o.id));
+      if (DemoSession.orgId) myOrgIds.add(DemoSession.orgId);
+      orgOptions = cachedOrgs.filter(o => myOrgIds.has(o.id));
+    } catch (e) {
+      // Fallback to primary org
+      orgOptions = cachedOrgs.filter(o => o.id === DemoSession.orgId);
+    }
+  }
+
+  select.innerHTML = orgOptions.map(o =>
+    `<option value="${o.id}">${escHtml(o.name)}</option>`
+  ).join('');
+
+  // Select first org
+  if (orgOptions.length > 0) {
+    select.value = orgOptions[0].id;
+  }
+
+  openModal('profileModal');
+  await onProfileOrgChange();
+}
+
+async function onProfileOrgChange() {
+  const orgId = parseInt(document.getElementById('profileOrgSelect').value);
+  if (!orgId) return;
+  profileOrgId = orgId;
+
+  const org = cachedOrgs.find(o => o.id === orgId);
+  if (!org) return;
+
+  document.getElementById('profileOrgName').value = org.name || '';
+  document.getElementById('profileOrgWebsite').value = org.website || '';
+  document.getElementById('profileLogoUrl').value = org.logo_url || '';
+  document.getElementById('profileQrUrl').value = org.qr_url || '';
+
+  // Preview images
+  updateImagePreview('profileLogoUrl', 'profileLogoPreview');
+  updateImagePreview('profileQrUrl', 'profileQrPreview');
+
+  const socials = org.socials || {};
+  document.getElementById('profileFB').value = socials.fb || '';
+  document.getElementById('profileIG').value = socials.ig || '';
+  document.getElementById('profileSC').value = socials.sc || '';
+  document.getElementById('profileSG').value = socials.sg || '';
+  document.getElementById('profileRD').value = socials.rd || '';
+  document.getElementById('profileX').value = socials.x || '';
+
+  // Load members
+  await loadProfileMembers(orgId);
+}
+
+function updateImagePreview(inputId, previewId) {
+  const url = document.getElementById(inputId).value.trim();
+  const preview = document.getElementById(previewId);
+  if (url) {
+    preview.innerHTML = `<img src="${escAttr(url)}" style="max-width:80px;max-height:80px;border-radius:var(--radius-sm);border:1px solid var(--border);" onerror="this.style.display='none'">`;
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
+async function loadProfileMembers(orgId) {
+  const container = document.getElementById('profileOrgMembers');
+  try {
+    const members = await api('/orgs/members?org_id=' + orgId);
+    if (members.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-dim);font-style:italic;padding:8px 0;">No organizers assigned</div>';
+      return;
+    }
+    container.innerHTML = members.map(m => {
+      const isArchived = m.membership_status === 'archived';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);${isArchived ? 'opacity:0.5;' : ''}">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;">${escHtml(m.display_name)}</div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);">${escHtml(m.email || '')}</div>
+        </div>
+        ${isArchived
+          ? `<span class="event-list-status status-archived" style="font-size:10px;">Archived</span>
+             <button class="btn btn-ghost btn-xs" onclick="orgMemberAction('unarchive', ${orgId}, ${m.id})">Restore</button>`
+          : `<button class="btn btn-ghost btn-xs" style="color:#E05555;" onclick="orgMemberAction('archive', ${orgId}, ${m.id})">Archive</button>`
+        }
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--text-dim);">Could not load members</div>';
+  }
+}
+
+async function orgMemberAction(action, orgId, userId) {
+  try {
+    await api('/orgs/members', {
+      method: 'POST',
+      body: JSON.stringify({ action, org_id: orgId, user_id: userId }),
+    });
+    showToast(action === 'archive' ? 'Member archived' : 'Member restored');
+    await loadProfileMembers(orgId);
+  } catch (e) {
+    showToast('Error: ' + (e.message || 'Unknown error'));
+  }
+}
+
+async function addOrgMember() {
+  const email = document.getElementById('profileAddMemberEmail').value.trim();
+  if (!email || !profileOrgId) {
+    showToast('Please enter an email address');
+    return;
+  }
+  try {
+    await api('/orgs/members', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add', org_id: profileOrgId, email }),
+    });
+    document.getElementById('profileAddMemberEmail').value = '';
+    showToast('Member added!');
+    await loadProfileMembers(profileOrgId);
+  } catch (e) {
+    showToast('Error: ' + (e.message || 'User not found'));
+  }
+}
+
 async function saveProfile() {
+  if (!profileOrgId) {
+    showToast('No organization selected');
+    return;
+  }
   const name = document.getElementById('profileOrgName').value.trim();
   const website = document.getElementById('profileOrgWebsite').value.trim();
+  const logo_url = document.getElementById('profileLogoUrl').value.trim();
+  const qr_url = document.getElementById('profileQrUrl').value.trim();
   const socials = {
     fb: document.getElementById('profileFB').value.trim() || undefined,
     ig: document.getElementById('profileIG').value.trim() || undefined,
@@ -904,18 +1100,64 @@ async function saveProfile() {
   try {
     await api('/orgs', {
       method: 'PUT',
-      body: JSON.stringify({ name, website, socials }),
+      body: JSON.stringify({ org_id: profileOrgId, name, website, socials, logo_url, qr_url }),
     });
     closeModal('profileModal');
     showToast('Profile updated!');
-    DemoSession.orgName = name;
-    applyDemoRole();
+    cachedOrgs = [];
+    if (profileOrgId === DemoSession.orgId) {
+      DemoSession.orgName = name;
+      applyDemoRole();
+    }
   } catch (e) {
     showToast('Error updating profile');
   }
 }
 
 // ======= FORM HELPERS =======
+function formatEventType(type) {
+  const labels = {
+    march: 'March',
+    protest_gathering: 'Protest Gathering',
+    signature_gathering: 'Signature Gathering',
+    community_event: 'Community Event',
+    virtual: 'Virtual',
+  };
+  return labels[type] || type;
+}
+
+function onEventTypeChange() {
+  const sel = document.getElementById('eventType');
+  const custom = document.getElementById('eventTypeCustom');
+  custom.style.display = sel.value === 'other' ? '' : 'none';
+  if (sel.value !== 'other') custom.value = '';
+}
+
+function getEventTypeValue() {
+  const sel = document.getElementById('eventType');
+  if (sel.value === 'other') return document.getElementById('eventTypeCustom').value.trim();
+  return sel.value;
+}
+
+function setEventTypeValue(val) {
+  const sel = document.getElementById('eventType');
+  const custom = document.getElementById('eventTypeCustom');
+  const knownTypes = ['march', 'protest_gathering', 'signature_gathering', 'community_event', 'virtual'];
+  if (!val) {
+    sel.value = '';
+    custom.style.display = 'none';
+    custom.value = '';
+  } else if (knownTypes.includes(val)) {
+    sel.value = val;
+    custom.style.display = 'none';
+    custom.value = '';
+  } else {
+    sel.value = 'other';
+    custom.style.display = '';
+    custom.value = val;
+  }
+}
+
 function toggleRecurring() {
   const checked = document.getElementById('recurringCheck').checked;
   document.getElementById('recurringFields').style.display = checked ? '' : 'none';
@@ -1201,9 +1443,15 @@ async function openOrgEditModal(org) {
   document.getElementById('orgEditName').value = org ? org.name : '';
   document.getElementById('orgEditAbbr').value = org ? org.abbreviation : '';
   document.getElementById('orgEditWebsite').value = org ? (org.website || '') : '';
+  document.getElementById('orgEditLogoUrl').value = org ? (org.logo_url || '') : '';
+  document.getElementById('orgEditQrUrl').value = org ? (org.qr_url || '') : '';
+  updateImagePreview('orgEditLogoUrl', 'orgEditLogoPreview');
+  updateImagePreview('orgEditQrUrl', 'orgEditQrPreview');
   const socials = org ? (org.socials || {}) : {};
   document.getElementById('orgEditFB').value = socials.fb || '';
   document.getElementById('orgEditIG').value = socials.ig || '';
+  document.getElementById('orgEditSC').value = socials.sc || '';
+  document.getElementById('orgEditSG').value = socials.sg || '';
   document.getElementById('orgEditX').value = socials.x || '';
   document.getElementById('orgEditRD').value = socials.rd || '';
 
@@ -1264,9 +1512,13 @@ async function saveOrgEdit() {
   const name = document.getElementById('orgEditName').value.trim();
   const abbreviation = document.getElementById('orgEditAbbr').value.trim();
   const website = document.getElementById('orgEditWebsite').value.trim();
+  const logo_url = document.getElementById('orgEditLogoUrl').value.trim();
+  const qr_url = document.getElementById('orgEditQrUrl').value.trim();
   const socials = {
     fb: document.getElementById('orgEditFB').value.trim() || undefined,
     ig: document.getElementById('orgEditIG').value.trim() || undefined,
+    sc: document.getElementById('orgEditSC').value.trim() || undefined,
+    sg: document.getElementById('orgEditSG').value.trim() || undefined,
     x: document.getElementById('orgEditX').value.trim() || undefined,
     rd: document.getElementById('orgEditRD').value.trim() || undefined,
   };
@@ -1278,9 +1530,9 @@ async function saveOrgEdit() {
 
   try {
     if (id) {
-      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify({ name, abbreviation, website, socials }) });
+      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url }) });
     } else {
-      await api('/orgs', { method: 'POST', body: JSON.stringify({ name, abbreviation, website, socials }) });
+      await api('/orgs', { method: 'POST', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url }) });
     }
     closeModal('orgEditModal');
     showToast(id ? 'Organization updated!' : 'Organization created!');
@@ -1419,6 +1671,1463 @@ async function saveUserEdit() {
   } catch (e) {
     showToast('Error saving user');
   }
+}
+
+// ======= SHARE / FLYER TOOLS =======
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function copyEventDetails(event) {
+  if (!event) return;
+  const locationLine = event.hide_address
+    ? 'Register for location details'
+    : (event.address || 'Virtual / Online');
+  const d = new Date(event.date + 'T12:00:00');
+  const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+  const dateFormatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Find org website
+  const org = cachedOrgs.find(o => o.id === event.org_id);
+  const orgWebsite = event.website_url || (org && org.website) || '';
+  const domain = AppConfig.domain || 'resist.events';
+
+  const lines = [
+    event.title,
+    `${dayName}, ${dateFormatted}`,
+    `${event.start_time || ''} – ${event.end_time || ''}`,
+    locationLine,
+    `Hosted by: ${event.org_name || ''}`,
+  ];
+  if (orgWebsite) lines.push(orgWebsite);
+  lines.push('', event.description || '');
+  lines.push('', `More info: https://${domain}/events/${event.id}`);
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    showToast('Copied to clipboard!');
+  });
+}
+
+function copyEventMarkdown(event) {
+  if (!event) return;
+  const locationLine = event.hide_address
+    ? 'Register for location details'
+    : (event.address || 'Virtual / Online');
+  const d = new Date(event.date + 'T12:00:00');
+  const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+  const dateFormatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const org = cachedOrgs.find(o => o.id === event.org_id);
+  const orgWebsite = event.website_url || (org && org.website) || '';
+  const domain = AppConfig.domain || 'resist.events';
+
+  const orgPart = orgWebsite
+    ? `**Hosted by:** ${event.org_name || ''} · ${orgWebsite}`
+    : `**Hosted by:** ${event.org_name || ''}`;
+
+  const lines = [
+    `## ${event.title}`,
+    `**When:** ${dayName}, ${dateFormatted} · ${event.start_time || ''} – ${event.end_time || ''}`,
+    `**Where:** ${locationLine}`,
+    orgPart,
+    '',
+    event.description || '',
+    '',
+    `\uD83D\uDD17 [More info](https://${domain}/events/${event.id})`,
+  ];
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    showToast('Copied as Markdown!');
+  });
+}
+
+// ======= FLYER EVENT TYPE COLOR VARIANTS =======
+const flyerEventTypeColors = {
+  virtual:              { accent: '#4A9BD9', accentLight: '#6BB5E8', dark: '#1A2F42', label: 'Virtual Event' },
+  signature_gathering:  { accent: '#D4A033', accentLight: '#E8B84D', dark: '#3D2E10', label: 'Signature Gathering' },
+  march:                { accent: '#C2452D', accentLight: '#D4634E', dark: '#3A1A14', label: 'March' },
+  protest_gathering:    { accent: '#D42B2B', accentLight: '#E04545', dark: '#2A0F0F', label: 'Protest Gathering' },
+  community_event:      { accent: '#7B5EA7', accentLight: '#9B7EC7', dark: '#2A1F3A', label: 'Community Event' },
+};
+
+function getEventTypeColors(eventType) {
+  return flyerEventTypeColors[eventType] || flyerEventTypeColors.march;
+}
+
+// Rally Bold color overrides per event type
+const rallyColors = {
+  virtual:             { bg: '#1A0A0A', sash: '#D42B2B', typeColor: '#FF6B6B', urlColor: '#FF6B6B' },
+  signature_gathering: { bg: '#1A0A0A', sash: '#D42B2B', typeColor: '#FF6B6B', urlColor: '#FF6B6B' },
+  march:               { bg: '#1A0A0A', sash: '#D42B2B', typeColor: '#FF6B6B', urlColor: '#FF6B6B' },
+  protest_gathering:   { bg: '#1A0A0A', sash: '#D42B2B', typeColor: '#FF6B6B', urlColor: '#FF6B6B' },
+  community_event:     { bg: '#0A0A1A', sash: '#7B5EA7', typeColor: '#B89AE0', urlColor: '#B89AE0' },
+};
+
+// Modern Clean color overrides per event type
+const modernColors = {
+  virtual:             { accent: '#2D5A3D', visBg: ['#E0E8F5','#C4D4EF','#A8BFE8'] },
+  signature_gathering: { accent: '#2D5A3D', visBg: ['#F5EDE0','#EFE0C4','#E8D4A8'] },
+  march:               { accent: '#2D5A3D', visBg: ['#F5E0E0','#EFC4C4','#E8A8A8'] },
+  protest_gathering:   { accent: '#8B2E2E', visBg: ['#F5E8E0','#EFD0B8','#E8B89A'] },
+  community_event:     { accent: '#2D5A3D', visBg: ['#E8F0E4','#D4E5D0','#C0D9B8'] },
+};
+
+// People's Voice illustration BG per event type
+const pvIllusBg = {
+  virtual:             ['#6BA3D6','#4A8FBF','#88C4E8','#EAF2FB'],
+  signature_gathering: ['#E8C860','#D4A030','#C09028','#FFF5DC'],
+  march:               ['#E86060','#D43030','#F09090','#FFEAEA'],
+  protest_gathering:   ['#F0A050','#E07020','#F0C090','#FFF3E6'],
+  community_event:     ['#FFD166','#06D6A0','#118AB2','#FFF0D0'],
+};
+
+// People's Voice footer notes per event type
+const pvFootNotes = {
+  virtual: 'all voices welcome \u2728',
+  signature_gathering: 'your name matters \u270D\uFE0F',
+  march: 'walk with us \u270A',
+  protest_gathering: 'be heard \u270A',
+  community_event: 'all are welcome \u2728',
+};
+
+// People's Voice type labels
+const pvTypeLabels = {
+  virtual: '~ virtual event ~',
+  signature_gathering: '~ signature drive ~',
+  march: '~ march ~',
+  protest_gathering: '~ protest rally ~',
+  community_event: '~ community gathering ~',
+};
+
+// Broadside decree subtitles per event type
+const bsDecrees = {
+  virtual: 'A Virtual Assembly',
+  signature_gathering: 'A Petition Most Urgent',
+  march: 'A Grand Procession',
+  protest_gathering: 'A Gathering of Discontent',
+  community_event: 'A Gathering of Mirth',
+};
+
+const flyerTemplates = [
+  { key: 'broadside',     name: 'The Broadside',  desc: 'Newspaper / poster aesthetic' },
+  { key: 'rally_bold',    name: 'Rally Bold',     desc: 'High-energy protest style' },
+  { key: 'modern_clean',  name: 'Modern Clean',   desc: 'Minimal, contemporary' },
+  { key: 'peoples_voice', name: "People's Voice",  desc: 'Grassroots community feel' },
+];
+
+async function generateFlyer(event) {
+  if (!event) return;
+
+  const pickerHTML = `
+    <div class="modal-overlay open" id="flyerPickerModal" onclick="if(event.target===this){this.remove();document.body.style.overflow='hidden';}">
+      <div class="modal-box" style="max-width:720px;">
+        <div class="modal-header">
+          <h2>Choose Flyer Template</h2>
+          <button class="modal-close" onclick="document.getElementById('flyerPickerModal').remove();">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <p style="text-align:center;color:var(--text-muted);margin-bottom:12px;font-size:13px;">Loading fonts...</p>
+          <div class="flyer-template-grid">
+            ${flyerTemplates.map((t, i) => `
+              <div class="flyer-template-thumb" onclick="showFlyerPreview(_currentDetailEvent, ${i})">
+                <canvas id="flyerPreview${i}" width="216" height="288"></canvas>
+                <div class="flyer-template-label"><strong>${t.name}</strong><span>${t.desc}</span></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', pickerHTML);
+
+  // Wait for all Google Fonts to load before drawing on canvas
+  await document.fonts.ready;
+
+  // Remove loading message
+  const loadMsg = document.querySelector('#flyerPickerModal .modal-body > p');
+  if (loadMsg) loadMsg.remove();
+
+  // Draw small previews
+  flyerTemplates.forEach((_, i) => {
+    const canvas = document.getElementById('flyerPreview' + i);
+    if (canvas) drawFlyerTemplate(canvas, event, i, true);
+  });
+}
+
+// ======= CANVAS DRAWING HELPERS (global for use by illustration functions) =======
+function flyerRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function flyerDrawPerson(ctx, cx, cy, headR, bodyW, bodyH, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(cx, cy, headR, 0, Math.PI * 2); ctx.fill();
+  flyerRoundRect(ctx, cx - bodyW/2, cy + headR, bodyW, bodyH, bodyW * 0.3);
+  ctx.fill();
+}
+
+function drawFlyerTemplate(canvas, event, templateIndex, isPreview) {
+  const W = isPreview ? 216 : 1080;
+  const H = isPreview ? 288 : 1440;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const s = W / 360;
+
+  const evType = event.event_type || 'march';
+  const colors = getEventTypeColors(evType);
+  const locationText = event.hide_address
+    ? 'Register for location details'
+    : (event.address || 'Virtual / Online');
+  const dateStr = formatDate(event.date);
+  const timeStr = (event.start_time || '') + ' \u2013 ' + (event.end_time || '');
+  const orgWebsite = event.website_url || '';
+  const orgName = event.org_name || '';
+  const genText = 'Generated by https://' + (AppConfig.domain || 'resist.events');
+
+  // Parse date parts for Modern Clean date box
+  let dateMo = '', dateD = '', dateWd = '';
+  try {
+    const d = new Date(event.date + 'T00:00:00');
+    dateMo = d.toLocaleDateString('en-US', { month: 'short' });
+    dateD = String(d.getDate());
+    dateWd = d.toLocaleDateString('en-US', { weekday: 'long' });
+  } catch(e) {}
+
+  function wrapText(text, maxWidth, maxLines) {
+    const words = (text || '').split(' ');
+    const lines = [];
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? cur + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = word;
+        if (lines.length >= maxLines) { lines[lines.length - 1] += '\u2026'; return lines; }
+      } else { cur = test; }
+    }
+    if (cur) {
+      if (lines.length >= maxLines) { lines[lines.length - 1] += '\u2026'; }
+      else lines.push(cur);
+    }
+    return lines;
+  }
+
+  // Local aliases for the global helpers (ctx is captured from this scope)
+  function roundRect(x, y, w, h, r) { flyerRoundRect(ctx, x, y, w, h, r); }
+  function drawPerson(cx, cy, headR, bodyW, bodyH, color) { flyerDrawPerson(ctx, cx, cy, headR, bodyW, bodyH, color); }
+
+  // ============================================
+  // TEMPLATE 0: THE BROADSIDE
+  // ============================================
+  if (templateIndex === 0) {
+    ctx.fillStyle = '#2C2416';
+    ctx.fillRect(0, 0, W, H);
+
+    // Parchment texture
+    ctx.fillStyle = 'rgba(139,115,72,0.03)';
+    for (let ty = 0; ty < H; ty += 4 * s) {
+      ctx.fillRect(0, ty, W, 1 * s);
+    }
+
+    // Triple border
+    ctx.strokeStyle = '#5C4A2E';
+    ctx.lineWidth = 3 * s;
+    ctx.strokeRect(0, 0, W, H);
+    ctx.lineWidth = 2 * s;
+    ctx.strokeRect(8 * s, 8 * s, W - 16 * s, H - 16 * s);
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 1 * s;
+    ctx.strokeRect(12 * s, 12 * s, W - 24 * s, H - 24 * s);
+    ctx.globalAlpha = 1;
+
+    const pad = 22 * s;
+    let y = 22 * s;
+
+    // Ornament
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#8B7348';
+    ctx.font = `${16 * s}px serif`;
+    ctx.fillText('\u2767  \u2726  \u2767', W / 2, y + 16 * s);
+    y += 20 * s;
+
+    // Decree
+    ctx.font = `700 ${14 * s}px 'UnifrakturCook', cursive`;
+    ctx.fillStyle = '#8B7348';
+    ctx.fillText((bsDecrees[evType] || 'A Grand Procession').toUpperCase(), W / 2, y + 14 * s);
+    y += 18 * s;
+
+    // Rule
+    const grad1 = ctx.createLinearGradient(pad, y, W - pad, y);
+    grad1.addColorStop(0, 'transparent');
+    grad1.addColorStop(0.5, '#5C4A2E');
+    grad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad1;
+    ctx.fillRect(pad, y, W - 2 * pad, 1 * s);
+    y += 6 * s;
+
+    // Title
+    ctx.fillStyle = '#F0E0C0';
+    ctx.font = `700 ${36 * s}px 'UnifrakturCook', cursive`;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowOffsetX = 1 * s; ctx.shadowOffsetY = 1 * s; ctx.shadowBlur = 0;
+    const bsTitleLines = wrapText(event.title, W - 2 * pad, 2);
+    bsTitleLines.forEach(line => { ctx.fillText(line, W / 2, y + 36 * s); y += 40 * s; });
+    ctx.shadowColor = 'transparent'; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    y += 4 * s;
+
+    // Subtitle / description
+    ctx.font = `italic ${13 * s}px 'IM Fell English', serif`;
+    ctx.fillStyle = '#B8A67E';
+    const subLines = wrapText(event.description || '', W - 2 * pad - 20 * s, 4);
+    subLines.forEach(line => { ctx.fillText(line, W / 2, y + 13 * s); y += 16 * s; });
+    y += 4 * s;
+
+    const topEndY = y;
+
+    // --- FOOTER (anchored from bottom) ---
+    // QR code in bottom-right
+    const bsQrSize = 50 * s;
+    const footUrlY = H - 22 * s;
+    const footOrgY = footUrlY - 16 * s;
+    const footRuleY = footOrgY - 10 * s;
+
+    // --- DETAILS (above footer) ---
+    const detH = 16 * s * 3;
+    const detStartY = footRuleY - 8 * s - detH;
+
+    // --- ILLUSTRATION (fills remaining space) ---
+    const illusGap = 6 * s;
+    const illusW = Math.min(260 * s, W - 2 * pad);
+    const illusX = W / 2 - illusW / 2;
+    const illusY = topEndY + illusGap;
+    const illusH = Math.max(30 * s, detStartY - illusGap - illusY);
+
+    ctx.strokeStyle = '#5C4A2E';
+    ctx.lineWidth = 2 * s;
+    ctx.fillStyle = '#231D12';
+    ctx.fillRect(illusX, illusY, illusW, illusH);
+    ctx.strokeRect(illusX, illusY, illusW, illusH);
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1 * s;
+    ctx.strokeRect(illusX + 3*s, illusY + 3*s, illusW - 6*s, illusH - 6*s);
+    ctx.globalAlpha = 1;
+    drawBroadsideIllus(ctx, illusX, illusY, illusW, illusH, s, evType);
+
+    // Render details
+    ctx.textAlign = 'center';
+    let dy = detStartY;
+    ctx.fillStyle = '#F0E0C0';
+    ctx.font = `bold ${14 * s}px 'IM Fell English', serif`;
+    ctx.fillText(dateStr, W / 2, dy + 14 * s);
+    dy += 16 * s;
+    ctx.fillStyle = '#D4C4A0';
+    ctx.font = `${13 * s}px 'IM Fell English', serif`;
+    ctx.fillText(timeStr, W / 2, dy + 13 * s);
+    dy += 16 * s;
+    ctx.font = `${12 * s}px 'IM Fell English', serif`;
+    ctx.fillText(locationText, W / 2, dy + 12 * s);
+
+    // Render footer (left-justified to avoid QR overlap)
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#5C4A2E';
+    ctx.fillRect(pad, footRuleY, W - 2 * pad, 1 * s);
+    ctx.globalAlpha = 1;
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#B8A67E';
+    ctx.font = `700 ${16 * s}px 'UnifrakturCook', cursive`;
+    ctx.fillText(orgName, pad, footOrgY);
+    ctx.fillStyle = '#8B7348';
+    ctx.font = `italic ${11 * s}px 'IM Fell English', serif`;
+    ctx.fillText(orgWebsite, pad, footUrlY);
+
+    // QR code
+    const eventUrl = 'https://' + (AppConfig.domain || 'resist.events') + '/events/' + event.id;
+    try {
+      const qr = qrcode(0, 'M'); qr.addData(eventUrl); qr.make();
+      const qrMods = qr.getModuleCount();
+      const qrX = W - pad - bsQrSize, qrY2 = footRuleY + 4 * s;
+      ctx.fillStyle = '#E8D5B0';
+      ctx.fillRect(qrX - 3*s, qrY2 - 3*s, bsQrSize + 6*s, bsQrSize + 6*s);
+      const qrCell = bsQrSize / qrMods;
+      ctx.fillStyle = '#2C2416';
+      for (let r = 0; r < qrMods; r++) for (let c = 0; c < qrMods; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(qrX + c * qrCell, qrY2 + r * qrCell, qrCell + 0.5, qrCell + 0.5);
+      }
+    } catch(e) {}
+
+    // Generated by
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(92,74,46,0.5)';
+    ctx.font = `${7 * s}px 'IM Fell English', serif`;
+    ctx.fillText(genText, pad, H - 6 * s);
+
+  // ============================================
+  // TEMPLATE 1: RALLY BOLD
+  // ============================================
+  } else if (templateIndex === 1) {
+    const rc = rallyColors[evType] || rallyColors.march;
+
+    // Dark background
+    ctx.fillStyle = rc.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Top-left angled sash
+    ctx.save();
+    ctx.translate(-100 * s, -60 * s);
+    ctx.rotate(-15 * Math.PI / 180);
+    ctx.fillStyle = rc.sash;
+    ctx.fillRect(0, 0, 350 * s, 200 * s);
+    ctx.restore();
+
+    // Bottom-right angled sash
+    ctx.save();
+    ctx.translate(W - 280 * s, H - 120 * s);
+    ctx.rotate(-15 * Math.PI / 180);
+    ctx.fillStyle = rc.sash;
+    ctx.fillRect(0, 0, 400 * s, 200 * s);
+    ctx.restore();
+
+    // Radial gradient overlay
+    const radGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.7);
+    radGrad.addColorStop(0, 'transparent');
+    radGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = radGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    const rlPad = 20 * s;
+    let y = 20 * s;
+
+    // Event type label
+    ctx.textAlign = 'left';
+    ctx.fillStyle = rc.typeColor;
+    ctx.font = `600 ${12 * s}px 'Oswald', sans-serif`;
+    ctx.fillText((colors.label || 'MARCH').toUpperCase(), rlPad, y + 12 * s);
+    y += 16 * s;
+
+    // Title in Bebas Neue
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `400 ${34 * s}px 'Bebas Neue', sans-serif`;
+    ctx.shadowColor = `rgba(${rc.sash === '#7B5EA7' ? '123,94,167' : '212,43,43'},0.6)`;
+    ctx.shadowOffsetX = 3 * s; ctx.shadowOffsetY = 3 * s; ctx.shadowBlur = 0;
+    const rlTitleLines = wrapText(event.title.toUpperCase(), W - 2 * rlPad, 3);
+    rlTitleLines.forEach(line => { ctx.fillText(line, rlPad, y + 30 * s); y += 32 * s; });
+    ctx.shadowColor = 'transparent'; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    y += 4 * s;
+
+    // Description
+    ctx.fillStyle = '#ccc';
+    ctx.font = `400 ${12 * s}px 'DM Sans', sans-serif`;
+    const rlDescLines = wrapText(event.description || '', W - 2 * rlPad, 3);
+    rlDescLines.forEach(line => { ctx.fillText(line, rlPad, y + 12 * s); y += 15 * s; });
+    y += 6 * s;
+
+    const rlTopEndY = y;
+
+    // --- BOTTOM SECTION (anchored from bottom) ---
+    // Generated by
+    const rlGenY = H - 5 * s;
+    // Footer
+    const rlFootY = H - 18 * s;
+    // Info bar
+    const rlInfoH = 84 * s;
+    const rlInfoY = rlFootY - 12 * s - rlInfoH;
+
+    // --- GFX illustration (fills remaining space) ---
+    const gfxY = rlTopEndY;
+    const gfxH = rlInfoY - gfxY;
+    if (gfxH > 40 * s) {
+      const gfxCx = W / 2, gfxCy = gfxY + gfxH / 2;
+      drawRallyIllus(ctx, gfxCx, gfxCy, s, evType, rc);
+    }
+
+    // Render info bar
+    ctx.fillStyle = rc.sash;
+    ctx.fillRect(0, rlInfoY, W, rlInfoH);
+
+    const infoCol = W / 2;
+    ctx.textAlign = 'left';
+
+    // Date
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = `600 ${8 * s}px 'Oswald', sans-serif`;
+    ctx.fillText('DATE', rlPad, rlInfoY + 18 * s);
+    ctx.fillStyle = '#fff';
+    ctx.font = `400 ${18 * s}px 'Bebas Neue', sans-serif`;
+    ctx.fillText(dateStr, rlPad, rlInfoY + 36 * s);
+
+    // Time
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = `600 ${8 * s}px 'Oswald', sans-serif`;
+    ctx.fillText('TIME', infoCol, rlInfoY + 18 * s);
+    ctx.fillStyle = '#fff';
+    ctx.font = `400 ${18 * s}px 'Bebas Neue', sans-serif`;
+    ctx.fillText(timeStr, infoCol, rlInfoY + 36 * s);
+
+    // Location
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = `600 ${8 * s}px 'Oswald', sans-serif`;
+    ctx.fillText(evType === 'virtual' ? 'PLATFORM' : 'LOCATION', rlPad, rlInfoY + 54 * s);
+    ctx.fillStyle = '#fff';
+    ctx.font = `500 ${12 * s}px 'Oswald', sans-serif`;
+    ctx.fillText(locationText, rlPad, rlInfoY + 70 * s);
+
+    // Render footer
+    ctx.fillStyle = '#fff';
+    ctx.font = `700 ${12 * s}px 'Oswald', sans-serif`;
+    ctx.fillText(orgName.toUpperCase(), rlPad, rlFootY);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = rc.urlColor;
+    ctx.font = `500 ${10 * s}px 'Oswald', sans-serif`;
+    ctx.fillText(orgWebsite, W - rlPad, rlFootY);
+
+    // QR code
+    const rlEventUrl = 'https://' + (AppConfig.domain || 'resist.events') + '/events/' + event.id;
+    try {
+      const qr = qrcode(0, 'M'); qr.addData(rlEventUrl); qr.make();
+      const qrMods = qr.getModuleCount();
+      const qrSize = 50 * s;
+      const qrX = W - rlPad - qrSize, qrY2 = H - rlPad - qrSize;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(qrX - 3*s, qrY2 - 3*s, qrSize + 6*s, qrSize + 6*s);
+      const qrCell = qrSize / qrMods;
+      ctx.fillStyle = rc.bg;
+      for (let r = 0; r < qrMods; r++) for (let c = 0; c < qrMods; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(qrX + c * qrCell, qrY2 + r * qrCell, qrCell + 0.5, qrCell + 0.5);
+      }
+    } catch(e) {}
+    // Generated by
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = `${7 * s}px 'Oswald', sans-serif`;
+    ctx.fillText(genText, W - 10 * s, rlGenY);
+
+  // ============================================
+  // TEMPLATE 2: MODERN CLEAN
+  // ============================================
+  } else if (templateIndex === 2) {
+    const mc = modernColors[evType] || modernColors.march;
+
+    // Cream background
+    ctx.fillStyle = '#F8F5F0';
+    ctx.fillRect(0, 0, W, H);
+
+    // Left accent bar
+    const acGrad = ctx.createLinearGradient(0, 0, 0, H);
+    acGrad.addColorStop(0, mc.accent);
+    acGrad.addColorStop(0.5, mc.accent === '#8B2E2E' ? '#C04040' : '#4A9B6A');
+    acGrad.addColorStop(1, mc.accent);
+    ctx.fillStyle = acGrad;
+    ctx.fillRect(0, 0, 6 * s, H);
+
+    const mcPad = 24 * s;
+    let y = 24 * s;
+
+    // Date box
+    const dbW = 64 * s, dbH = 72 * s;
+    roundRect(mcPad, y, dbW, dbH, 8 * s);
+    ctx.fillStyle = mc.accent;
+    ctx.fill();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.8;
+    ctx.font = `700 ${10 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(dateMo.toUpperCase(), mcPad + dbW/2, y + 18 * s);
+    ctx.globalAlpha = 1;
+    ctx.font = `900 ${32 * s}px 'Fraunces', serif`;
+    ctx.fillText(dateD, mcPad + dbW/2, y + 50 * s);
+    ctx.globalAlpha = 0.7;
+    ctx.font = `600 ${9 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(dateWd.toUpperCase(), mcPad + dbW/2, y + 64 * s);
+    ctx.globalAlpha = 1;
+
+    // Event type tag (top right)
+    const tagText = (colors.label || 'Event').toUpperCase();
+    ctx.font = `700 ${9 * s}px 'DM Sans', sans-serif`;
+    const tagW = ctx.measureText(tagText).width + 20 * s;
+    const tagX = W - mcPad - tagW;
+    const tagY = y + 6 * s;
+    ctx.strokeStyle = mc.accent;
+    ctx.lineWidth = 2 * s;
+    roundRect(tagX, tagY, tagW, 24 * s, 12 * s);
+    ctx.stroke();
+    ctx.fillStyle = mc.accent;
+    ctx.textAlign = 'center';
+    ctx.fillText(tagText, tagX + tagW/2, tagY + 16 * s);
+
+    y += dbH + 14 * s;
+
+    // Title
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#1A1A1A';
+    ctx.font = `900 ${26 * s}px 'Fraunces', serif`;
+    const mcTitleLines = wrapText(event.title, W - 2 * mcPad, 3);
+    mcTitleLines.forEach(line => { ctx.fillText(line, mcPad, y + 26 * s); y += 28 * s; });
+    y += 4 * s;
+
+    // Description
+    ctx.fillStyle = '#555';
+    ctx.font = `400 ${11 * s}px 'DM Sans', sans-serif`;
+    const mcDescLines = wrapText(event.description || '', W - 2 * mcPad, 5);
+    mcDescLines.forEach(line => { ctx.fillText(line, mcPad, y + 11 * s); y += 14 * s; });
+    y += 6 * s;
+
+    const mcTopEndY = y;
+
+    // --- BOTTOM SECTION (anchored from bottom) ---
+    const mcGenY = H - 5 * s;
+    const mcFootY = H - 20 * s;
+    const mcFootRuleY = mcFootY - 12 * s;
+
+    // Detail cards
+    const gridGap = 8 * s;
+    const cardW = (W - 2 * mcPad - gridGap) / 2;
+    const cardH = 44 * s;
+    const cardsH = cardH + gridGap + cardH; // 2 rows
+    const cardsY = mcFootRuleY - 10 * s - cardsH;
+
+    // --- ILLUSTRATION (fills remaining space) ---
+    const visGap = 8 * s;
+    const visY = mcTopEndY + visGap;
+    const visH = Math.max(30 * s, cardsY - visGap - visY);
+
+    if (visH > 30 * s) {
+      const visGrad2 = ctx.createLinearGradient(mcPad, visY, W - mcPad, visY + visH);
+      visGrad2.addColorStop(0, mc.visBg[0]);
+      visGrad2.addColorStop(0.5, mc.visBg[1]);
+      visGrad2.addColorStop(1, mc.visBg[2]);
+      ctx.fillStyle = visGrad2;
+      roundRect(mcPad, visY, W - 2 * mcPad, visH, 12 * s);
+      ctx.fill();
+      const ovGrad = ctx.createLinearGradient(0, visY, 0, visY + visH);
+      ovGrad.addColorStop(0, 'transparent');
+      ovGrad.addColorStop(1, `rgba(${mc.accent === '#8B2E2E' ? '139,46,46' : '45,90,61'},0.08)`);
+      ctx.fillStyle = ovGrad;
+      roundRect(mcPad, visY, W - 2 * mcPad, visH, 12 * s);
+      ctx.fill();
+      drawModernIllus(ctx, mcPad, visY, W - 2 * mcPad, visH, s, evType, mc);
+    }
+
+    // Render detail cards
+    const detailCards = [
+      { label: 'TIME', value: timeStr },
+      { label: evType === 'virtual' ? 'PLATFORM' : 'LOCATION', value: evType === 'virtual' ? 'Virtual Event' : (event.address || '').split(',')[0] || locationText },
+    ];
+    detailCards.forEach((card, i) => {
+      const cx2 = mcPad + (i % 2) * (cardW + gridGap);
+      roundRect(cx2, cardsY, cardW, cardH, 8 * s);
+      ctx.fillStyle = '#F0EDE6';
+      ctx.fill();
+      ctx.fillStyle = '#999';
+      ctx.font = `700 ${8 * s}px 'DM Sans', sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(card.label, cx2 + 10 * s, cardsY + 16 * s);
+      ctx.fillStyle = '#333';
+      ctx.font = `600 ${12 * s}px 'DM Sans', sans-serif`;
+      ctx.fillText(card.value, cx2 + 10 * s, cardsY + 32 * s);
+    });
+
+    // Full-width address card
+    const addrY = cardsY + cardH + gridGap;
+    roundRect(mcPad, addrY, W - 2 * mcPad, cardH, 8 * s);
+    ctx.fillStyle = '#F0EDE6';
+    ctx.fill();
+    ctx.fillStyle = '#999';
+    ctx.font = `700 ${8 * s}px 'DM Sans', sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText('ADDRESS', mcPad + 10 * s, addrY + 16 * s);
+    ctx.fillStyle = '#333';
+    ctx.font = `600 ${12 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(locationText, mcPad + 10 * s, addrY + 32 * s);
+
+    // Footer
+    ctx.fillStyle = '#E0DDD6';
+    ctx.fillRect(mcPad, mcFootRuleY, W - 2 * mcPad, 1 * s);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = mc.accent;
+    ctx.font = `700 ${11 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(orgName, mcPad, mcFootY);
+    ctx.textAlign = 'right';
+    ctx.globalAlpha = 0.7;
+    ctx.font = `400 ${10 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(orgWebsite, W - mcPad, mcFootY);
+    ctx.globalAlpha = 1;
+
+    // QR code
+    const mcEventUrl = 'https://' + (AppConfig.domain || 'resist.events') + '/events/' + event.id;
+    try {
+      const qr = qrcode(0, 'M'); qr.addData(mcEventUrl); qr.make();
+      const qrMods = qr.getModuleCount();
+      const qrSize = 50 * s;
+      const qrX = W - mcPad - qrSize, qrY2 = H - mcPad - qrSize;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(qrX - 3*s, qrY2 - 3*s, qrSize + 6*s, qrSize + 6*s);
+      const qrCell = qrSize / qrMods;
+      ctx.fillStyle = mc.accent;
+      for (let r = 0; r < qrMods; r++) for (let c = 0; c < qrMods; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(qrX + c * qrCell, qrY2 + r * qrCell, qrCell + 0.5, qrCell + 0.5);
+      }
+    } catch(e) {}
+    // Generated by
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.font = `${7 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(genText, W - 10 * s, mcGenY);
+
+  // ============================================
+  // TEMPLATE 3: PEOPLE'S VOICE
+  // ============================================
+  } else {
+    ctx.fillStyle = '#FFF8E7';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle texture
+    ctx.globalAlpha = 0.02;
+    ctx.fillStyle = '#C8AA64';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+
+    // Radial gradients
+    const rg1 = ctx.createRadialGradient(W * 0.2, H * 0.8, 0, W * 0.2, H * 0.8, W * 0.5);
+    rg1.addColorStop(0, 'rgba(230,140,60,0.06)');
+    rg1.addColorStop(1, 'transparent');
+    ctx.fillStyle = rg1;
+    ctx.fillRect(0, 0, W, H);
+    const rg2 = ctx.createRadialGradient(W * 0.8, H * 0.2, 0, W * 0.8, H * 0.2, W * 0.5);
+    rg2.addColorStop(0, 'rgba(100,60,180,0.04)');
+    rg2.addColorStop(1, 'transparent');
+    ctx.fillStyle = rg2;
+    ctx.fillRect(0, 0, W, H);
+
+    const pvPad = 20 * s;
+    let y = 20 * s;
+
+    // Type label (right-justified)
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#8B6F47';
+    ctx.font = `400 ${15 * s}px 'Caveat', cursive`;
+    const pvTypeText = pvTypeLabels[evType] || '~ event ~';
+    ctx.save();
+    ctx.translate(W - pvPad, y + 14 * s);
+    ctx.rotate(-2 * Math.PI / 180);
+    ctx.fillText(pvTypeText, 0, 0);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    y += 18 * s;
+
+    // Title
+    ctx.fillStyle = '#2A1F14';
+    ctx.font = `400 ${32 * s}px 'Permanent Marker', cursive`;
+    ctx.save();
+    ctx.rotate(-0.5 * Math.PI / 180);
+    const pvTitleLines = wrapText(event.title, W - 2 * pvPad, 2);
+    pvTitleLines.forEach(line => { ctx.fillText(line, pvPad, y + 32 * s); y += 34 * s; });
+    ctx.restore();
+    y += 2 * s;
+
+    // Description
+    ctx.fillStyle = '#6B5840';
+    ctx.font = `400 ${17 * s}px 'Caveat', cursive`;
+    const pvDescLines = wrapText(event.description || '', W - 2 * pvPad, 3);
+    pvDescLines.forEach(line => { ctx.fillText(line, pvPad, y + 17 * s); y += 20 * s; });
+    y += 2 * s;
+
+    // URL
+    ctx.fillStyle = '#B8906A';
+    ctx.font = `400 ${10 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(orgWebsite, pvPad, y + 10 * s);
+    y += 14 * s;
+
+    const pvTopEndY = y;
+
+    // --- ILLUSTRATION (half of remaining space) ---
+    const pvVisGap = 8 * s;
+    const pvVisY = pvTopEndY + pvVisGap;
+    const pvAvailSpace = H - pvTopEndY - 80 * s; // leave room for pills + footer + QR
+    const pvVisH = Math.max(30 * s, pvAvailSpace / 2);
+
+    if (pvVisH > 30 * s) {
+      const bgColors = pvIllusBg[evType] || pvIllusBg.march;
+      roundRect(pvPad, pvVisY, W - 2 * pvPad, pvVisH, 16 * s);
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = bgColors[3];
+      ctx.fillRect(pvPad, pvVisY, W - 2 * pvPad, pvVisH);
+      const rc1 = ctx.createRadialGradient(W * 0.3, pvVisY + pvVisH * 0.4, 0, W * 0.3, pvVisY + pvVisH * 0.4, pvVisH * 0.6);
+      rc1.addColorStop(0, bgColors[0]); rc1.addColorStop(1, 'transparent');
+      ctx.fillStyle = rc1; ctx.fillRect(0, pvVisY, W, pvVisH);
+      const rc2 = ctx.createRadialGradient(W * 0.7, pvVisY + pvVisH * 0.6, 0, W * 0.7, pvVisY + pvVisH * 0.6, pvVisH * 0.5);
+      rc2.addColorStop(0, bgColors[1]); rc2.addColorStop(1, 'transparent');
+      ctx.fillStyle = rc2; ctx.fillRect(0, pvVisY, W, pvVisH);
+      const rc3 = ctx.createRadialGradient(W * 0.5, pvVisY + pvVisH * 0.8, 0, W * 0.5, pvVisY + pvVisH * 0.8, pvVisH * 0.5);
+      rc3.addColorStop(0, bgColors[2]); rc3.addColorStop(1, 'transparent');
+      ctx.fillStyle = rc3; ctx.fillRect(0, pvVisY, W, pvVisH);
+      drawPeoplesIllus(ctx, pvPad, pvVisY, W - 2 * pvPad, pvVisH, s, evType);
+      ctx.restore();
+    }
+
+    // Render pills (flow from below illustration)
+    const pillH = 28 * s;
+    const pillsStartY = pvVisY + pvVisH + pvVisGap;
+    const pills = [
+      { icon: '\uD83D\uDCC5', text: dateStr },
+      { icon: '\uD83D\uDD56', text: timeStr },
+      { icon: evType === 'virtual' ? '\uD83D\uDCBB' : '\uD83D\uDCCD', text: evType === 'virtual' ? 'Virtual' : (event.address || '').split(',')[0] || locationText },
+    ];
+    let px = pvPad;
+    let pillY = pillsStartY;
+    ctx.textAlign = 'left';
+    pills.forEach(pill => {
+      const pillText = pill.icon + ' ' + pill.text;
+      ctx.font = `600 ${11 * s}px 'DM Sans', sans-serif`;
+      const tw = ctx.measureText(pillText).width;
+      const pillW = tw + 24 * s;
+      if (px + pillW > W - pvPad && px > pvPad) {
+        px = pvPad;
+        pillY += pillH + 6 * s;
+      }
+      roundRect(px, pillY, pillW, pillH, 24 * s);
+      ctx.fillStyle = '#FFF';
+      ctx.fill();
+      ctx.strokeStyle = '#E8D8B8';
+      ctx.lineWidth = 2 * s;
+      roundRect(px, pillY, pillW, pillH, 24 * s);
+      ctx.stroke();
+      ctx.fillStyle = '#4A3D2C';
+      ctx.fillText(pillText, px + 12 * s, pillY + 18 * s);
+      px += pillW + 6 * s;
+    });
+
+    // Footer (below pills)
+    const pvFootY = pillY + pillH + 12 * s;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#D45B2B';
+    ctx.font = `400 ${11 * s}px 'Permanent Marker', cursive`;
+    ctx.fillText(orgName, pvPad, pvFootY);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#8B6F47';
+    ctx.font = `400 ${13 * s}px 'Caveat', cursive`;
+    ctx.save();
+    ctx.translate(W - pvPad - 55 * s, pvFootY); // offset to avoid QR code
+    ctx.rotate(1 * Math.PI / 180);
+    ctx.fillText(pvFootNotes[evType] || 'all are welcome \u2728', 0, 0);
+    ctx.restore();
+
+    // QR code
+    const pvEventUrl = 'https://' + (AppConfig.domain || 'resist.events') + '/events/' + event.id;
+    try {
+      const qr = qrcode(0, 'M'); qr.addData(pvEventUrl); qr.make();
+      const qrMods = qr.getModuleCount();
+      const qrSize = 50 * s;
+      const qrX = W - pvPad - qrSize, qrY2 = H - pvPad - qrSize;
+      ctx.fillStyle = '#FFF';
+      ctx.fillRect(qrX - 3*s, qrY2 - 3*s, qrSize + 6*s, qrSize + 6*s);
+      const qrCell = qrSize / qrMods;
+      ctx.fillStyle = '#2A1F14';
+      for (let r = 0; r < qrMods; r++) for (let c = 0; c < qrMods; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(qrX + c * qrCell, qrY2 + r * qrCell, qrCell + 0.5, qrCell + 0.5);
+      }
+    } catch(e) {}
+    // Generated by (bottom-left to avoid QR)
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.font = `${7 * s}px 'DM Sans', sans-serif`;
+    ctx.fillText(genText, pvPad, H - 5 * s);
+  }
+}
+
+// ======= BROADSIDE SVG ILLUSTRATIONS (canvas) =======
+function drawBroadsideIllus(ctx, x, y, w, h, s, evType) {
+  const cx = x + w/2, cy = y + h/2;
+  ctx.fillStyle = '#3D321F';
+  ctx.strokeStyle = '#5C4A2E';
+
+  if (evType === 'virtual') {
+    // Monitor with play button and viewers
+    ctx.fillStyle = '#3D321F';
+    flyerRoundRect(ctx, cx - 65*s, cy - 18*s, 130*s, 55*s, 6*s); ctx.fill();
+    ctx.fillStyle = '#2C2416';
+    ctx.fillRect(cx - 57*s, cy - 12*s, 114*s, 40*s);
+    ctx.strokeStyle = '#5C4A2E'; ctx.lineWidth = 1.5*s;
+    ctx.beginPath(); ctx.arc(cx, cy + 8*s, 12*s, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#5C4A2E';
+    ctx.beginPath(); ctx.moveTo(cx - 4*s, cy + 2*s); ctx.lineTo(cx + 7*s, cy + 8*s); ctx.lineTo(cx - 4*s, cy + 14*s); ctx.closePath(); ctx.fill();
+    // Stand
+    ctx.fillStyle = '#3D321F';
+    flyerRoundRect(ctx, cx - 35*s, cy + 38*s, 70*s, 4*s, 2*s); ctx.fill();
+    // Viewers
+    flyerDrawPerson(ctx, cx - 55*s, cy + 18*s, 5*s, 8*s, 10*s, '#3D321F');
+    flyerDrawPerson(ctx, cx + 55*s, cy + 18*s, 5*s, 8*s, 10*s, '#3D321F');
+  } else if (evType === 'signature_gathering') {
+    // Document with lines and quills
+    ctx.fillStyle = '#3D321F';
+    flyerRoundRect(ctx, cx - 55*s, cy - 30*s, 110*s, 70*s, 2*s); ctx.fill();
+    ctx.fillStyle = '#2C2416';
+    ctx.fillRect(cx - 49*s, cy - 24*s, 98*s, 58*s);
+    ctx.strokeStyle = '#5C4A2E'; ctx.lineWidth = 1*s;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(cx - 38*s, cy - 12*s + i*10*s); ctx.lineTo(cx + 38*s, cy - 12*s + i*10*s); ctx.stroke();
+    }
+    // Wax seal
+    ctx.globalAlpha = 0.4; ctx.fillStyle = '#5C4A2E';
+    ctx.beginPath(); ctx.arc(cx + 20*s, cy + 24*s, 8*s, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Quills
+    ctx.globalAlpha = 0.6; ctx.fillStyle = '#5C4A2E';
+    ctx.save(); ctx.translate(cx - 75*s, cy + 16*s); ctx.rotate(-0.3);
+    ctx.fillRect(0, -35*s, 3*s, 35*s); ctx.restore();
+    ctx.save(); ctx.translate(cx + 75*s, cy + 12*s); ctx.rotate(0.3);
+    ctx.fillRect(0, -35*s, 3*s, 35*s); ctx.restore();
+    ctx.globalAlpha = 1;
+  } else if (evType === 'march') {
+    // Row of marching people with signs
+    const people = [
+      { cx: -80, cy: 2, r: 8, bw: 12, bh: 16 },
+      { cx: -45, cy: -3, r: 9, bw: 14, bh: 18 },
+      { cx: -10, cy: 0, r: 8, bw: 12, bh: 16 },
+      { cx: 20, cy: -5, r: 10, bw: 14, bh: 20 },
+      { cx: 50, cy: -1, r: 8, bw: 12, bh: 16 },
+      { cx: 75, cy: -3, r: 9, bw: 14, bh: 18 },
+      { cx: 102, cy: 2, r: 8, bw: 12, bh: 16 },
+    ];
+    people.forEach(p => {
+      const col = p.r > 9 ? '#4A3D2A' : '#3D321F';
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.bw*s, p.bh*s, col);
+    });
+    // Signs
+    ctx.strokeStyle = '#3D321F'; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 80*s, cy + 10*s); ctx.lineTo(cx - 92*s, cy - 18*s); ctx.stroke();
+    ctx.strokeStyle = '#4A3D2A';
+    ctx.beginPath(); ctx.moveTo(cx + 20*s, cy + 5*s); ctx.lineTo(cx + 8*s, cy - 25*s); ctx.stroke();
+    ctx.globalAlpha = 0.6; ctx.fillStyle = '#5C4A2E';
+    ctx.fillRect(cx + 1*s, cy - 37*s, 14*s, 14*s);
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(cx + 75*s, cy + 6*s); ctx.lineTo(cx + 87*s, cy - 16*s); ctx.stroke();
+    // Ground line
+    ctx.globalAlpha = 0.3; ctx.strokeStyle = '#5C4A2E'; ctx.lineWidth = 1*s;
+    ctx.beginPath(); ctx.moveTo(x, cy + 35*s);
+    ctx.quadraticCurveTo(cx, cy + 28*s, x + w, cy + 32*s); ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else if (evType === 'protest_gathering') {
+    // Protesters with raised fists and signs
+    const people = [
+      { cx: -55, cy: -5, r: 10 },
+      { cx: -20, cy: -10, r: 12 },
+      { cx: 20, cy: -7, r: 11 },
+      { cx: 55, cy: -3, r: 10 },
+    ];
+    people.forEach((p, i) => {
+      const col = i % 2 === 0 ? '#4A3D2A' : '#3D321F';
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, (p.r*1.5)*s, (p.r*2)*s, col);
+      // Raised arm with sign
+      ctx.strokeStyle = col; ctx.lineWidth = 3*s;
+      const dir = i % 2 === 0 ? -1 : 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + p.cx*s, cy + p.cy*s + p.r*s);
+      ctx.lineTo(cx + (p.cx + dir*15)*s, cy + (p.cy - 20)*s);
+      ctx.stroke();
+    });
+    // Big sign
+    ctx.globalAlpha = 0.5; ctx.fillStyle = '#5C4A2E';
+    ctx.fillRect(cx - 10*s, cy - 35*s, 14*s, 12*s);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#3D321F'; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 20*s, cy); ctx.lineTo(cx - 3*s, cy - 35*s); ctx.stroke();
+    // Ground
+    ctx.globalAlpha = 0.3; ctx.strokeStyle = '#5C4A2E'; ctx.lineWidth = 1*s;
+    ctx.beginPath(); ctx.moveTo(x, cy + 35*s);
+    ctx.quadraticCurveTo(cx, cy + 30*s, x + w, cy + 33*s); ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else {
+    // Community: stage/microphone
+    ctx.fillStyle = '#3D321F';
+    flyerRoundRect(ctx, cx - 45*s, cy - 8*s, 90*s, 50*s, 3*s); ctx.fill();
+    flyerRoundRect(ctx, cx - 30*s, cy - 28*s, 60*s, 24*s, 8*s); ctx.fill();
+    flyerRoundRect(ctx, cx - 20*s, cy - 36*s, 40*s, 12*s, 4*s); ctx.fill();
+    // Mic stand
+    ctx.strokeStyle = '#5C4A2E'; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.moveTo(cx, cy - 8*s); ctx.lineTo(cx, cy - 28*s); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy - 30*s, 3*s, 0, Math.PI*2); ctx.fillStyle = '#5C4A2E'; ctx.fill();
+    // Viewers
+    flyerDrawPerson(ctx, cx - 65*s, cy + 20*s, 5*s, 8*s, 10*s, '#3D321F');
+    flyerDrawPerson(ctx, cx + 65*s, cy + 20*s, 5*s, 8*s, 10*s, '#3D321F');
+    // Music notes
+    ctx.fillStyle = '#5C4A2E'; ctx.globalAlpha = 0.5;
+    ctx.font = `${14*s}px serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('\u266A', cx - 50*s, cy - 2*s);
+    ctx.fillText('\u266B', cx + 52*s, cy - 5*s);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ======= RALLY BOLD SVG ILLUSTRATIONS (canvas) =======
+function drawRallyIllus(ctx, cx, cy, s, evType, rc) {
+  if (evType === 'virtual') {
+    // Monitor with play button
+    ctx.fillStyle = rc.sash;
+    flyerRoundRect(ctx, cx - 50*s, cy - 35*s, 100*s, 70*s, 6*s); ctx.fill();
+    ctx.fillStyle = rc.bg;
+    flyerRoundRect(ctx, cx - 42*s, cy - 27*s, 84*s, 54*s, 2*s); ctx.fill();
+    ctx.strokeStyle = rc.typeColor; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.arc(cx, cy, 16*s, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = rc.typeColor;
+    ctx.beginPath(); ctx.moveTo(cx - 6*s, cy - 9*s); ctx.lineTo(cx + 10*s, cy); ctx.lineTo(cx - 6*s, cy + 9*s); ctx.closePath(); ctx.fill();
+    // Stand
+    ctx.fillStyle = rc.sash;
+    flyerRoundRect(ctx, cx - 25*s, cy + 36*s, 50*s, 4*s, 2*s); ctx.fill();
+    // Audience dots
+    ctx.globalAlpha = 0.3; ctx.fillStyle = rc.typeColor;
+    ctx.beginPath(); ctx.arc(cx - 45*s, cy + 60*s, 6*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - 25*s, cy + 65*s, 5*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 25*s, cy + 65*s, 5*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 45*s, cy + 60*s, 6*s, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (evType === 'signature_gathering') {
+    // Document with pen
+    ctx.fillStyle = rc.sash;
+    flyerRoundRect(ctx, cx - 45*s, cy - 55*s, 90*s, 110*s, 3*s); ctx.fill();
+    ctx.fillStyle = rc.bg;
+    ctx.fillRect(cx - 38*s, cy - 47*s, 76*s, 90*s);
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = rc.typeColor; ctx.lineWidth = 1.5*s;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(cx - 28*s, cy - 32*s + i*14*s); ctx.lineTo(cx + 28*s, cy - 32*s + i*14*s); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.6;
+    // Quill/pen
+    ctx.fillStyle = rc.typeColor;
+    ctx.beginPath();
+    ctx.moveTo(cx + 5*s, cy + 20*s);
+    ctx.quadraticCurveTo(cx + 12*s, cy + 10*s, cx + 20*s, cy + 25*s);
+    ctx.quadraticCurveTo(cx + 25*s, cy + 30*s, cx + 15*s, cy + 32*s);
+    ctx.quadraticCurveTo(cx + 8*s, cy + 33*s, cx + 5*s, cy + 26*s);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rc.typeColor; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.moveTo(cx + 5*s, cy + 26*s); ctx.lineTo(cx - 10*s, cy + 45*s); ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else if (evType === 'march') {
+    // Fist silhouette shape (raised hand)
+    ctx.fillStyle = rc.sash;
+    // Simplified raised fist
+    flyerRoundRect(ctx, cx - 22*s, cy - 30*s, 45*s, 80*s, 4*s); ctx.fill();
+    // Fingers
+    ctx.fillStyle = rc.sash;
+    const fingers = [
+      { x: -18, y: -35, w: 11, h: 30, r: 5 },
+      { x: -5, y: -42, w: 11, h: 30, r: 5 },
+      { x: 8, y: -38, w: 11, h: 28, r: 5 },
+      { x: 20, y: -30, w: 10, h: 24, r: 5 },
+    ];
+    fingers.forEach(f => {
+      flyerRoundRect(ctx, cx + f.x*s, cy + f.y*s, f.w*s, f.h*s, f.r*s);
+      ctx.fill();
+    });
+    // Wrist
+    ctx.fillStyle = rc.sash;
+    ctx.fillRect(cx - 15*s, cy + 50*s, 30*s, 20*s);
+    // Arm lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.moveTo(cx - 22*s, cy + 50*s); ctx.lineTo(cx - 22*s, cy + 80*s); ctx.stroke();
+  } else if (evType === 'protest_gathering') {
+    // Crowd with big "!!!" behind
+    ctx.globalAlpha = 0.15; ctx.fillStyle = rc.sash;
+    ctx.font = `400 ${72*s}px 'Bebas Neue', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('!!!', cx, cy + 20*s);
+    ctx.globalAlpha = 1;
+    // People
+    const ppl = [
+      { cx: -30, cy: -5, r: 12, color: `rgba(${rc.typeColor === '#B89AE0' ? '184,154,224' : '255,107,107'},0.3)` },
+      { cx: 0, cy: -15, r: 15, color: `rgba(${rc.sash === '#7B5EA7' ? '123,94,167' : '212,43,43'},0.4)` },
+      { cx: 32, cy: -8, r: 12, color: `rgba(${rc.typeColor === '#B89AE0' ? '184,154,224' : '255,107,107'},0.3)` },
+    ];
+    ppl.forEach(p => {
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.r*1.3*s, p.r*2*s, p.color);
+      // Arm up
+      ctx.strokeStyle = p.color; ctx.lineWidth = 3*s;
+      ctx.beginPath();
+      ctx.moveTo(cx + p.cx*s, cy + (p.cy + p.r)*s);
+      ctx.lineTo(cx + (p.cx - 12)*s, cy + (p.cy - 22)*s);
+      ctx.stroke();
+    });
+    // Central sign
+    ctx.globalAlpha = 0.5; ctx.fillStyle = rc.sash;
+    ctx.fillRect(cx - 7*s, cy - 52*s, 14*s, 16*s);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = `rgba(${rc.sash === '#7B5EA7' ? '123,94,167' : '212,43,43'},0.5)`;
+    ctx.lineWidth = 4*s;
+    ctx.beginPath(); ctx.moveTo(cx, cy - 5*s); ctx.lineTo(cx - 12*s, cy - 38*s); ctx.stroke();
+  } else {
+    // Community: Microphone
+    ctx.fillStyle = rc.sash;
+    ctx.fillRect(cx - 12*s, cy - 35*s, 24*s, 70*s);
+    ctx.beginPath(); ctx.arc(cx, cy - 39*s, 14*s, 0, Math.PI*2);
+    ctx.fillStyle = rc.sash; ctx.fill();
+    ctx.fillStyle = rc.bg;
+    ctx.beginPath(); ctx.arc(cx, cy - 39*s, 8*s, 0, Math.PI*2); ctx.fill();
+    // Mic stand legs
+    ctx.strokeStyle = rc.sash; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 15*s, cy + 35*s); ctx.lineTo(cx - 30*s, cy + 60*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 15*s, cy + 35*s); ctx.lineTo(cx + 30*s, cy + 60*s); ctx.stroke();
+    // Music notes
+    ctx.globalAlpha = 0.3; ctx.fillStyle = rc.typeColor;
+    ctx.font = `${20*s}px serif`; ctx.textAlign = 'center';
+    ctx.fillText('\u266A', cx - 35*s, cy - 10*s);
+    ctx.font = `${24*s}px serif`;
+    ctx.fillText('\u266B', cx + 30*s, cy - 15*s);
+    ctx.font = `${16*s}px serif`;
+    ctx.fillText('\u266A', cx - 30*s, cy + 20*s);
+    ctx.fillText('\u266A', cx + 25*s, cy + 18*s);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+// ======= MODERN CLEAN SVG ILLUSTRATIONS (canvas) =======
+function drawModernIllus(ctx, x, y, w, h, s, evType, mc) {
+  const cx = x + w/2, cy = y + h/2;
+  const ac = mc.accent;
+  const aRgb = ac === '#8B2E2E' ? '139,46,46' : '45,90,61';
+
+  if (evType === 'virtual') {
+    // Monitor + people
+    ctx.fillStyle = `rgba(${aRgb},0.2)`;
+    flyerRoundRect(ctx, cx - 60*s, cy - 30*s, 120*s, 70*s, 6*s); ctx.fill();
+    ctx.fillStyle = `rgba(${aRgb},0.08)`;
+    ctx.fillRect(cx - 52*s, cy - 23*s, 104*s, 54*s);
+    ctx.strokeStyle = ac; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.arc(cx, cy, 14*s, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = ac; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(cx - 5*s, cy - 8*s); ctx.lineTo(cx + 8*s, cy); ctx.lineTo(cx - 5*s, cy + 8*s); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgba(${aRgb},0.2)`;
+    flyerRoundRect(ctx, cx - 30*s, cy + 42*s, 60*s, 4*s, 2*s); ctx.fill();
+    // Viewers
+    ctx.fillStyle = `rgba(${aRgb},0.15)`;
+    flyerDrawPerson(ctx, cx - 50*s, cy + 52*s, 6*s, 8*s, 10*s, `rgba(${aRgb},0.15)`);
+    flyerDrawPerson(ctx, cx, cy + 54*s, 5*s, 7*s, 9*s, `rgba(${aRgb},0.12)`);
+    flyerDrawPerson(ctx, cx + 50*s, cy + 52*s, 6*s, 8*s, 10*s, `rgba(${aRgb},0.15)`);
+  } else if (evType === 'signature_gathering') {
+    // Document
+    ctx.fillStyle = `rgba(${aRgb},0.15)`;
+    flyerRoundRect(ctx, cx - 50*s, cy - 40*s, 100*s, 90*s, 3*s); ctx.fill();
+    ctx.strokeStyle = ac; ctx.lineWidth = 1.5*s; ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(cx - 35*s, cy - 22*s + i*12*s); ctx.lineTo(cx + 35*s, cy - 22*s + i*12*s); ctx.stroke();
+    }
+    // Pen signature
+    ctx.globalAlpha = 0.4; ctx.fillStyle = ac;
+    ctx.beginPath();
+    ctx.moveTo(cx + 10*s, cy + 20*s);
+    ctx.quadraticCurveTo(cx + 17*s, cy + 12*s, cx + 24*s, cy + 24*s);
+    ctx.quadraticCurveTo(cx + 28*s, cy + 30*s, cx + 20*s, cy + 32*s);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = ac; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.moveTo(cx + 10*s, cy + 27*s); ctx.lineTo(cx - 2*s, cy + 42*s); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Checkmark counter
+    ctx.fillStyle = ac; ctx.globalAlpha = 0.3;
+    ctx.font = `400 ${10*s}px 'DM Sans', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('\u2713 signed', cx - 20*s, cy + 35*s);
+    ctx.globalAlpha = 1;
+  } else if (evType === 'march') {
+    // Row of marching people
+    const people = [
+      { cx: -60, cy: 10, r: 10 },
+      { cx: -30, cy: 5, r: 12 },
+      { cx: 0, cy: 0, r: 14 },
+      { cx: 30, cy: 5, r: 12 },
+      { cx: 60, cy: 10, r: 10 },
+    ];
+    people.forEach((p, i) => {
+      const alpha = 0.25 + (2 - Math.abs(i - 2)) * 0.05;
+      const col = `rgba(${aRgb},${alpha})`;
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.r*1.3*s, p.r*2*s, col);
+    });
+    // Central sign
+    ctx.strokeStyle = `rgba(${aRgb},0.4)`; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx, cy + 14*s); ctx.lineTo(cx - 12*s, cy - 15*s); ctx.stroke();
+    ctx.fillStyle = `rgba(${aRgb},0.3)`;
+    ctx.fillRect(cx - 19*s, cy - 30*s, 14*s, 16*s);
+    // Ground path
+    ctx.strokeStyle = `rgba(${aRgb},0.15)`; ctx.lineWidth = 2*s;
+    ctx.beginPath(); ctx.moveTo(x + 10*s, cy + 40*s);
+    ctx.quadraticCurveTo(cx, cy + 34*s, x + w - 10*s, cy + 38*s); ctx.stroke();
+  } else if (evType === 'protest_gathering') {
+    // Protesters
+    const people = [
+      { cx: -40, cy: 0, r: 12 },
+      { cx: 0, cy: -8, r: 16 },
+      { cx: 40, cy: 0, r: 12 },
+    ];
+    people.forEach((p, i) => {
+      const alpha = i === 1 ? 0.3 : 0.25;
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.r*1.5*s, p.r*2*s, `rgba(${aRgb},${alpha})`);
+    });
+    // Sign
+    ctx.strokeStyle = `rgba(${aRgb},0.35)`; ctx.lineWidth = 4*s;
+    ctx.beginPath(); ctx.moveTo(cx, cy + 8*s); ctx.lineTo(cx - 12*s, cy - 22*s); ctx.stroke();
+    ctx.fillStyle = `rgba(${aRgb},0.25)`;
+    ctx.fillRect(cx - 19*s, cy - 36*s, 14*s, 16*s);
+  } else {
+    // Community: microphone + audience
+    ctx.fillStyle = `rgba(${aRgb},0.25)`;
+    ctx.fillRect(cx - 12*s, cy - 30*s, 24*s, 55*s);
+    ctx.beginPath(); ctx.arc(cx, cy - 34*s, 10*s, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(${aRgb},0.1)`;
+    ctx.beginPath(); ctx.arc(cx, cy - 34*s, 5*s, 0, Math.PI*2); ctx.fill();
+    // Legs
+    ctx.strokeStyle = `rgba(${aRgb},0.2)`; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 15*s, cy + 25*s); ctx.lineTo(cx - 30*s, cy + 42*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 15*s, cy + 25*s); ctx.lineTo(cx + 30*s, cy + 42*s); ctx.stroke();
+    // Audience
+    flyerDrawPerson(ctx, cx - 50*s, cy + 30*s, 8*s, 12*s, 16*s, `rgba(${aRgb},0.15)`);
+    flyerDrawPerson(ctx, cx + 50*s, cy + 30*s, 8*s, 12*s, 16*s, `rgba(${aRgb},0.15)`);
+    // Notes
+    ctx.fillStyle = ac; ctx.globalAlpha = 0.2;
+    ctx.font = `${14*s}px serif`; ctx.textAlign = 'center';
+    ctx.fillText('\u266A', cx - 35*s, cy - 5*s);
+    ctx.font = `${16*s}px serif`;
+    ctx.fillText('\u266B', cx + 32*s, cy - 10*s);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+// ======= PEOPLE'S VOICE SVG ILLUSTRATIONS (canvas) =======
+function drawPeoplesIllus(ctx, x, y, w, h, s, evType) {
+  const cx = x + w/2, cy = y + h/2;
+  const pColors = ['#E76F51', '#264653', '#2A9D8F', '#E9C46A', '#F4A261'];
+
+  if (evType === 'virtual') {
+    // Screen with people inside
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    flyerRoundRect(ctx, cx - 70*s, cy - 32*s, 140*s, 80*s, 8*s); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(cx - 60*s, cy - 25*s, 120*s, 62*s);
+    // People in video call
+    flyerDrawPerson(ctx, cx - 30*s, cy - 8*s, 10*s, 12*s, 16*s, '#264653');
+    flyerDrawPerson(ctx, cx, cy - 12*s, 10*s, 12*s, 18*s, '#2A9D8F');
+    flyerDrawPerson(ctx, cx + 30*s, cy - 8*s, 10*s, 12*s, 16*s, '#E76F51');
+  } else if (evType === 'signature_gathering') {
+    // Document with person signing
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    flyerRoundRect(ctx, cx - 55*s, cy - 40*s, 110*s, 90*s, 4*s); ctx.fill();
+    ctx.strokeStyle = '#8B6F47'; ctx.lineWidth = 1.5*s; ctx.globalAlpha = 0.4;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.moveTo(cx - 40*s, cy - 20*s + i*12*s); ctx.lineTo(cx + 40*s, cy - 20*s + i*12*s); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Person signing
+    flyerDrawPerson(ctx, cx - 60*s, cy + 20*s, 12*s, 14*s, 20*s, '#E76F51');
+    ctx.strokeStyle = '#E76F51'; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 48*s, cy + 22*s); ctx.lineTo(cx - 38*s, cy + 6*s); ctx.stroke();
+    // "sign here" text
+    ctx.fillStyle = '#8B6F47'; ctx.globalAlpha = 0.5;
+    ctx.font = `400 ${11*s}px 'Permanent Marker', cursive`;
+    ctx.textAlign = 'center';
+    ctx.fillText('sign here \u2192', cx - 10*s, cy + 38*s);
+    ctx.globalAlpha = 1;
+  } else if (evType === 'march') {
+    // Colorful marching people
+    const marchers = [
+      { cx: -65, cy: 5, r: 12, c: 0 },
+      { cx: -30, cy: -2, r: 14, c: 1 },
+      { cx: 10, cy: -6, r: 16, c: 2 },
+      { cx: 50, cy: -2, r: 14, c: 3 },
+      { cx: 85, cy: 5, r: 12, c: 4 },
+    ];
+    marchers.forEach(m => {
+      flyerDrawPerson(ctx, cx + m.cx*s, cy + m.cy*s, m.r*s, m.r*1.3*s, m.r*2.2*s, pColors[m.c]);
+    });
+    // Signs
+    ctx.strokeStyle = '#2A9D8F'; ctx.lineWidth = 4*s;
+    ctx.beginPath(); ctx.moveTo(cx + 10*s, cy + 10*s); ctx.lineTo(cx - 2*s, cy - 22*s); ctx.stroke();
+    ctx.fillStyle = '#2A9D8F'; ctx.globalAlpha = 0.8;
+    ctx.fillRect(cx - 9*s, cy - 36*s, 14*s, 16*s);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#E76F51'; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx - 65*s, cy + 17*s); ctx.lineTo(cx - 77*s, cy - 8*s); ctx.stroke();
+  } else if (evType === 'protest_gathering') {
+    // Protesters with signs
+    const ppl = [
+      { cx: -55, cy: -2, r: 14, c: 0 },
+      { cx: -15, cy: -10, r: 16, c: 1 },
+      { cx: 30, cy: -6, r: 15, c: 2 },
+      { cx: 72, cy: 0, r: 13, c: 4 },
+    ];
+    ppl.forEach(p => {
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.r*1.3*s, p.r*2.2*s, pColors[p.c]);
+      ctx.strokeStyle = pColors[p.c]; ctx.lineWidth = 4*s;
+      ctx.beginPath();
+      ctx.moveTo(cx + p.cx*s, cy + (p.cy + p.r)*s);
+      ctx.lineTo(cx + (p.cx - 13)*s, cy + (p.cy - 18)*s);
+      ctx.stroke();
+    });
+    // Central sign
+    ctx.fillStyle = '#264653'; ctx.globalAlpha = 0.7;
+    ctx.fillRect(cx - 22*s, cy - 42*s, 14*s, 16*s);
+    ctx.globalAlpha = 1;
+    // "ENOUGH!" text
+    ctx.fillStyle = '#E76F51'; ctx.globalAlpha = 0.4;
+    ctx.font = `400 ${10*s}px 'Permanent Marker', cursive`;
+    ctx.textAlign = 'center';
+    ctx.fillText('ENOUGH!', cx - 10*s, cy + 45*s);
+    ctx.globalAlpha = 1;
+  } else {
+    // Community gathering with music/art
+    const community = [
+      { cx: -60, cy: 0, r: 14, c: 0 },
+      { cx: -20, cy: -8, r: 16, c: 1 },
+      { cx: 20, cy: -4, r: 15, c: 2 },
+      { cx: 60, cy: -2, r: 14, c: 3 },
+      { cx: 95, cy: 4, r: 12, c: 4 },
+    ];
+    community.forEach(p => {
+      flyerDrawPerson(ctx, cx + p.cx*s, cy + p.cy*s, p.r*s, p.r*1.3*s, p.r*2.2*s, pColors[p.c]);
+    });
+    // Arms up (music)
+    ctx.strokeStyle = '#E76F51'; ctx.lineWidth = 4*s;
+    ctx.beginPath(); ctx.moveTo(cx - 60*s, cy + 14*s); ctx.lineTo(cx - 72*s, cy - 12*s); ctx.stroke();
+    ctx.strokeStyle = '#2A9D8F'; ctx.lineWidth = 4*s;
+    ctx.beginPath(); ctx.moveTo(cx + 20*s, cy + 11*s); ctx.lineTo(cx + 32*s, cy - 18*s); ctx.stroke();
+    ctx.strokeStyle = '#F4A261'; ctx.lineWidth = 3*s;
+    ctx.beginPath(); ctx.moveTo(cx + 95*s, cy + 16*s); ctx.lineTo(cx + 105*s, cy - 8*s); ctx.stroke();
+    // Music notes
+    ctx.fillStyle = '#E76F51'; ctx.globalAlpha = 0.6;
+    ctx.font = `${16*s}px serif`; ctx.textAlign = 'center';
+    ctx.fillText('\u266A', cx - 68*s, cy - 20*s);
+    ctx.fillStyle = '#2A9D8F'; ctx.globalAlpha = 0.5;
+    ctx.font = `${20*s}px serif`;
+    ctx.fillText('\u266B', cx + 30*s, cy - 26*s);
+    ctx.fillStyle = '#F4A261'; ctx.globalAlpha = 0.6;
+    ctx.font = `${14*s}px serif`;
+    ctx.fillText('\u266A', cx + 90*s, cy - 16*s);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+// ======= FLYER PREVIEW & UPLOAD FLOW =======
+async function showFlyerPreview(event, templateIndex) {
+  if (!event) return;
+  const templateKey = flyerTemplates[templateIndex].key;
+
+  // Ensure fonts are ready
+  await document.fonts.ready;
+
+  // Render full-size canvas
+  const canvas = document.createElement('canvas');
+  drawFlyerTemplate(canvas, event, templateIndex, false);
+  const dataUrl = canvas.toDataURL('image/png');
+
+  const isOwner = DemoSession.role === 'admin' ||
+    (DemoSession.role === 'organizer' && event.org_id === DemoSession.orgId);
+
+  const previewHTML = `
+    <div class="modal-overlay open" id="flyerPreviewModal" onclick="if(event.target===this){this.remove();document.body.style.overflow='hidden';}">
+      <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header">
+          <h2>Flyer Preview</h2>
+          <button class="modal-close" onclick="document.getElementById('flyerPreviewModal').remove();">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+          <img src="${dataUrl}" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);" id="flyerPreviewImg">
+          <div class="flyer-actions" style="margin-top:16px;">
+            ${isOwner ? `<button class="btn btn-primary btn-sm" onclick="uploadFlyer(${event.id}, '${templateKey}')">Upload &amp; Save</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="downloadFlyerFromPreview()">Download to Device</button>
+          </div>
+          ${isOwner ? `<p class="auto-delete-notice">This flyer will be automatically deleted ${AppConfig.flyerAutoDeleteDays} days after your event ends.</p>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', previewHTML);
+}
+
+function downloadFlyerFromPreview() {
+  const img = document.getElementById('flyerPreviewImg');
+  if (!img) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = (_currentDetailEvent ? slugify(_currentDetailEvent.title) : 'flyer') + '-flyer.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('Flyer downloaded!');
+}
+
+async function uploadFlyer(eventId, templateName) {
+  const img = document.getElementById('flyerPreviewImg');
+  if (!img) return;
+
+  try {
+    // Convert data URL to blob
+    const res = await fetch(img.src);
+    const blob = await res.blob();
+
+    const formData = new FormData();
+    formData.append('flyer', blob, 'flyer.png');
+    formData.append('template_name', templateName);
+
+    const uploadRes = await fetch(`/api/events/${eventId}/flyer`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error(err.error || 'Upload failed');
+    }
+
+    showToast('Flyer saved!');
+
+    // Close modals
+    const previewModal = document.getElementById('flyerPreviewModal');
+    if (previewModal) previewModal.remove();
+    const pickerModal = document.getElementById('flyerPickerModal');
+    if (pickerModal) pickerModal.remove();
+
+    // Refresh event detail
+    closeEventDetailModal();
+    cachedEvents = [];
+    await openEventDetail(eventId);
+  } catch (e) {
+    showToast('Error uploading flyer: ' + e.message);
+  }
+}
+
+async function deleteGeneratedFlyer(eventId) {
+  showConfirm(
+    'Delete Flyer?',
+    'This will permanently remove the generated flyer for this event.',
+    'Delete Flyer',
+    async () => {
+      try {
+        const res = await fetch(`/api/events/${eventId}/flyer`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        showToast('Flyer deleted');
+        closeEventDetailModal();
+        cachedEvents = [];
+        await openEventDetail(eventId);
+      } catch (e) {
+        showToast('Error deleting flyer');
+      }
+    }
+  );
 }
 
 // ======= APP READY CALLBACK =======

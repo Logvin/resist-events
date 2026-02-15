@@ -6,3 +6,7 @@ pages_build_output_dir = "public"
 binding = "RESIST_DB"
 database_name = "resist-events-db"
 database_id = "5c41278f-3275-4085-a4a0-837690bfc74c"
+
+[[r2_buckets]]
+binding = "FLYER_BUCKET"
+bucket_name = "resist-events-flyers"

@@ -4,12 +4,14 @@ const AppConfig = {
   siteRegion: '',
   domain: '',
   archiveRetentionMonths: 12,
+  flyerAutoDeleteDays: 30,
   purposeText: '',
   loaded: false,
 };
 
 const DemoSession = {
   role: null, // 'guest', 'organizer', 'admin'
+  userId: null,
   orgId: null,
   orgName: '',
   displayName: '',
@@ -24,6 +26,7 @@ async function loadConfig() {
     if (data.site_region) AppConfig.siteRegion = data.site_region;
     if (data.domain) AppConfig.domain = data.domain;
     if (data.archive_retention_months) AppConfig.archiveRetentionMonths = parseInt(data.archive_retention_months);
+    if (data.flyer_auto_delete_days) AppConfig.flyerAutoDeleteDays = parseInt(data.flyer_auto_delete_days);
     if (data.purpose_text) AppConfig.purposeText = data.purpose_text;
     AppConfig.loaded = true;
   } catch (e) {
@@ -61,6 +64,7 @@ async function checkDemoSession() {
     const data = await res.json();
     if (data.role) {
       DemoSession.role = data.role;
+      DemoSession.userId = data.user_id || null;
       DemoSession.orgId = data.org_id;
       DemoSession.orgName = data.org_name || '';
       DemoSession.displayName = data.display_name || '';
@@ -87,6 +91,7 @@ async function setDemoRole(role) {
     if (!res.ok) throw new Error('Failed to set role');
     const data = await res.json();
     DemoSession.role = data.role;
+    DemoSession.userId = data.user_id || null;
     DemoSession.orgId = data.org_id;
     DemoSession.orgName = data.org_name || '';
     DemoSession.displayName = data.display_name || '';

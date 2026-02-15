@@ -19,6 +19,8 @@ export async function onRequestPut(context) {
     if (body.abbreviation !== undefined) { fields.push('abbreviation = ?'); values.push(body.abbreviation); }
     if (body.website !== undefined) { fields.push('website = ?'); values.push(body.website); }
     if (body.socials !== undefined) { fields.push('socials = ?'); values.push(JSON.stringify(body.socials)); }
+    if (body.logo_url !== undefined) { fields.push('logo_url = ?'); values.push(body.logo_url || null); }
+    if (body.qr_url !== undefined) { fields.push('qr_url = ?'); values.push(body.qr_url || null); }
 
     if (fields.length === 0) {
       return Response.json({ error: 'No fields to update' }, { status: 400 });

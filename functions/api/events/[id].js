@@ -9,9 +9,11 @@ export async function onRequestGet(context) {
   try {
     const row = await db.prepare(`
       SELECT e.*, o.name as org_name, o.abbreviation as org_abbreviation,
-        CASE WHEN e.org_id = (SELECT org_id FROM users WHERE id = ?) THEN 1 ELSE 0 END as org_is_host
+        CASE WHEN e.org_id = (SELECT org_id FROM users WHERE id = ?) THEN 1 ELSE 0 END as org_is_host,
+        CASE WHEN ef.event_id IS NOT NULL THEN '/api/events/' || e.id || '/flyer/image.png' ELSE NULL END as generated_flyer_url
       FROM events e
       JOIN organizations o ON e.org_id = o.id
+      LEFT JOIN event_flyers ef ON ef.event_id = e.id
       WHERE e.id = ?
     `).bind(context.data.demoUserId || 0, id).first();
 
@@ -58,7 +60,7 @@ export async function onRequestPut(context) {
     const fields = [];
     const values = [];
 
-    const allowed = ['title', 'date', 'start_time', 'end_time', 'address', 'description', 'parking', 'flyer_url', 'website_url', 'reg_link', 'notes', 'status'];
+    const allowed = ['title', 'date', 'start_time', 'end_time', 'address', 'description', 'parking', 'flyer_url', 'website_url', 'reg_link', 'notes', 'status', 'event_type'];
     for (const key of allowed) {
       if (body[key] !== undefined) {
         fields.push(`${key} = ?`);

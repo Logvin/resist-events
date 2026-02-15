@@ -9,7 +9,8 @@ export async function onRequestGet(context) {
   try {
     let query = `
       SELECT e.*, o.name as org_name, o.abbreviation as org_abbreviation,
-        CASE WHEN e.org_id = (SELECT org_id FROM users WHERE id = ?) THEN 1 ELSE 0 END as org_is_host
+        CASE WHEN e.org_id = (SELECT org_id FROM users WHERE id = ?) THEN 1 ELSE 0 END as org_is_host,
+        CASE WHEN ef.event_id IS NOT NULL THEN '/api/events/' || e.id || '/flyer/image.png' ELSE NULL END as generated_flyer_url
     `;
 
     // For admins, include review_seen status
@@ -22,6 +23,7 @@ export async function onRequestGet(context) {
     query += `
       FROM events e
       JOIN organizations o ON e.org_id = o.id
+      LEFT JOIN event_flyers ef ON ef.event_id = e.id
       ORDER BY e.date ASC
     `;
 
@@ -86,8 +88,8 @@ export async function onRequestPost(context) {
     }
 
     const result = await db.prepare(`
-      INSERT INTO events (title, org_id, date, start_time, end_time, address, description, parking, flyer_url, website_url, reg_link, reg_required, hide_address, status, bring_items, no_bring_items, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (title, org_id, date, start_time, end_time, address, description, parking, flyer_url, website_url, reg_link, reg_required, hide_address, status, bring_items, no_bring_items, notes, event_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       body.title || '',
       orgId,
@@ -105,7 +107,8 @@ export async function onRequestPost(context) {
       status,
       JSON.stringify(body.bring_items || []),
       JSON.stringify(body.no_bring_items || []),
-      body.notes || ''
+      body.notes || '',
+      body.event_type || ''
     ).run();
 
     return Response.json({ ok: true, id: result.meta.last_row_id, status });

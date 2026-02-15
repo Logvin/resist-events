@@ -2,8 +2,10 @@
 
 DROP TABLE IF EXISTS review_seen;
 DROP TABLE IF EXISTS message_reads;
+DROP TABLE IF EXISTS user_orgs;
 DROP TABLE IF EXISTS message_replies;
 DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS event_flyers;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
@@ -20,6 +22,8 @@ CREATE TABLE organizations (
   abbreviation TEXT NOT NULL,
   website TEXT,
   socials TEXT DEFAULT '{}', -- JSON: { fb, ig, x, rd, sc, sg }
+  logo_url TEXT,
+  qr_url TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -47,12 +51,22 @@ CREATE TABLE events (
   reg_link TEXT,
   reg_required INTEGER DEFAULT 0,
   hide_address INTEGER DEFAULT 0,
+  event_type TEXT DEFAULT '', -- e.g. 'march', 'protest_gathering', 'signature_gathering', 'community_event', 'virtual', or custom
   status TEXT NOT NULL DEFAULT 'draft', -- draft, review, published, archived
   bring_items TEXT DEFAULT '[]', -- JSON array
   no_bring_items TEXT DEFAULT '[]', -- JSON array
   notes TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE event_flyers (
+  event_id INTEGER PRIMARY KEY REFERENCES events(id),
+  image_data BLOB,              -- D1 fallback storage (base64-encoded PNG)
+  r2_key TEXT,                  -- R2 object key if using R2
+  storage_type TEXT NOT NULL,   -- 'r2' or 'd1'
+  template_name TEXT,           -- e.g. 'rally_bold'
+  created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE messages (
@@ -71,6 +85,14 @@ CREATE TABLE message_replies (
   text TEXT NOT NULL,
   user_id INTEGER REFERENCES users(id),
   created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE user_orgs (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  org_id INTEGER NOT NULL REFERENCES organizations(id),
+  status TEXT NOT NULL DEFAULT 'active', -- active, archived
+  created_at TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, org_id)
 );
 
 CREATE TABLE message_reads (

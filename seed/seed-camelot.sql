@@ -5,6 +5,7 @@ INSERT INTO site_config (key, value) VALUES ('site_name', 'Camelot Resist Events
 INSERT INTO site_config (key, value) VALUES ('site_region', 'Camelot');
 INSERT INTO site_config (key, value) VALUES ('domain', 'camelot-resist.events');
 INSERT INTO site_config (key, value) VALUES ('archive_retention_months', '12');
+INSERT INTO site_config (key, value) VALUES ('flyer_auto_delete_days', '30');
 INSERT INTO site_config (key, value) VALUES ('purpose_text', '
 <p style="margin-bottom: 16px; line-height: 1.7;">
   Listen. Strange women lying in ponds distributing swords is no basis for a system of government. Supreme executive power derives from a mandate from the masses, not from some farcical aquatic ceremony.
@@ -37,8 +38,13 @@ INSERT INTO users (id, email, display_name, role, org_id) VALUES
   (2, 'dennis@peasants.camelot', 'Dennis the Peasant', 'organizer', 2),
   (3, 'guest@camelot-resist.events', 'Brave Sir Robin', 'guest', NULL);
 
+-- User-Org memberships (populated from users.org_id)
+INSERT INTO user_orgs (user_id, org_id, status) VALUES
+  (1, 1, 'active'),  -- Arthur -> Knights of the Round Table
+  (2, 2, 'active');   -- Dennis -> Peasants' Autonomous Collective
+
 -- Events
-INSERT INTO events (title, org_id, date, start_time, end_time, address, description, status, bring_items, no_bring_items, notes, reg_required) VALUES
+INSERT INTO events (title, org_id, date, start_time, end_time, address, description, status, bring_items, no_bring_items, notes, reg_required, event_type) VALUES
   (
     'Rally for Peasant Representation',
     2, '2026-02-14', '10:00 AM', '1:00 PM',
@@ -48,7 +54,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '["Protest Signs","Water","Mud-resistant Boots"]',
     '["Holy Hand Grenades","Shrubberies"]',
     'Dennis will lead the opening remarks. Come prepared to discuss the violence inherent in the system.',
-    0
+    0,
+    'protest_gathering'
   ),
   (
     'Town Hall: Bridge Toll Policy',
@@ -59,7 +66,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '["Water"]',
     '["Holy Hand Grenades"]',
     'Refreshments provided. Swallows (African and European) welcome.',
-    1
+    1,
+    'community_event'
   ),
   (
     'Shrubbery Planting Volunteer Day',
@@ -70,7 +78,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '["Gardening Gloves","Sunscreen","Water","Comfortable Shoes"]',
     '[]',
     'Do NOT say "it" — you know the word. Bring your own shrubbery if you have one.',
-    0
+    0,
+    'community_event'
   ),
   (
     'March for Swallow Research Funding',
@@ -81,7 +90,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '["Sunscreen","Water","Protest Signs","Hat / Sun Shade"]',
     '["Coconut Halves (they attract swallows)","Holy Hand Grenades"]',
     'Meet at the Castle Courtyard. March route is 1.5 leagues, flat terrain through the village.',
-    0
+    0,
+    'march'
   ),
   (
     'Holy Hand Grenade Safety Workshop',
@@ -92,7 +102,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '[]',
     '["Live Rabbits"]',
     'Light refreshments provided. The Book of Armaments will be available for reference.',
-    0
+    0,
+    'community_event'
   ),
   (
     'Know Your Rights: Witch Trial Defense',
@@ -103,7 +114,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '[]',
     '[]',
     'Scales and ducks will NOT be provided. This is an educational seminar.',
-    1
+    1,
+    'community_event'
   ),
   (
     'Spring Coconut Migration Census',
@@ -114,7 +126,8 @@ INSERT INTO events (title, org_id, date, start_time, end_time, address, descript
     '["Water","Comfortable Shoes","Binoculars"]',
     '[]',
     'Location will be shared upon registration. It could be carried by an African swallow!',
-    1
+    1,
+    'virtual'
   );
 
 -- Messages

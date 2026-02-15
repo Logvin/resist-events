@@ -38,6 +38,7 @@ export async function onRequestPost(context) {
 
     return new Response(JSON.stringify({
       role: user.role,
+      user_id: user.id,
       org_id: user.org_id,
       org_name: user.org_name || '',
       display_name: user.display_name,
@@ -65,6 +66,7 @@ export async function onRequestGet(context) {
       if (user) {
         return Response.json({
           role: user.role,
+          user_id: user.id,
           org_id: user.org_id,
           org_name: user.org_name || '',
           display_name: user.display_name,
