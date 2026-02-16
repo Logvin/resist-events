@@ -12,6 +12,6 @@
     "db:seed:remote": "wrangler d1 execute RESIST_DB --remote --file=seed/seed-camelot.sql"
   },
   "devDependencies": {
-    "wrangler": "^3"
+    "wrangler": "^4.65.0"
   }
 }

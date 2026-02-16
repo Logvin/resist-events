@@ -4,9 +4,26 @@
 
 export async function onRequestGet(context) {
   const db = context.env.RESIST_DB;
+  const url = new URL(context.request.url);
+  const cityFilter = url.searchParams.get('city');
 
   try {
-    const { results } = await db.prepare('SELECT id, name, abbreviation, website, socials, logo_url, qr_url FROM organizations ORDER BY name').all();
+    let query = `SELECT o.id, o.name, o.abbreviation, o.website, o.socials, o.logo_url, o.qr_url, o.city, o.mission_statement,
+       COUNT(DISTINCT e.id) as event_count,
+       COUNT(DISTINCT uo.user_id) > 0 as verified
+    FROM organizations o
+    LEFT JOIN events e ON o.id = e.org_id AND e.status = 'published'
+    LEFT JOIN user_orgs uo ON o.id = uo.org_id AND uo.status = 'active'`;
+
+    const bindings = [];
+    if (cityFilter) {
+      query += ` WHERE o.city = ?`;
+      bindings.push(cityFilter);
+    }
+
+    query += ` GROUP BY o.id ORDER BY event_count DESC, o.name ASC`;
+
+    const { results } = await db.prepare(query).bind(...bindings).all();
     const orgs = results.map(row => ({
       ...row,
       socials: row.socials ? JSON.parse(row.socials) : {},
@@ -27,21 +44,23 @@ export async function onRequestPost(context) {
 
   try {
     const body = await context.request.json();
-    const { name, abbreviation, website, socials, logo_url, qr_url } = body;
+    const { name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement } = body;
 
     if (!name || !abbreviation) {
       return Response.json({ error: 'Name and abbreviation are required' }, { status: 400 });
     }
 
     const result = await db.prepare(
-      'INSERT INTO organizations (name, abbreviation, website, socials, logo_url, qr_url) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO organizations (name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(
       name,
       abbreviation,
       website || '',
       JSON.stringify(socials || {}),
       logo_url || null,
-      qr_url || null
+      qr_url || null,
+      city || null,
+      mission_statement || null
     ).run();
 
     return Response.json({ ok: true, id: result.meta.last_row_id });
@@ -74,16 +93,18 @@ export async function onRequestPut(context) {
       if (!membership) return Response.json({ error: 'Not a member of this organization' }, { status: 403 });
     }
 
-    const { name, website, socials, logo_url, qr_url } = body;
+    const { name, website, socials, logo_url, qr_url, city, mission_statement } = body;
 
     await db.prepare(
-      'UPDATE organizations SET name = ?, website = ?, socials = ?, logo_url = ?, qr_url = ? WHERE id = ?'
+      'UPDATE organizations SET name = ?, website = ?, socials = ?, logo_url = ?, qr_url = ?, city = ?, mission_statement = ? WHERE id = ?'
     ).bind(
       name || '',
       website || '',
       JSON.stringify(socials || {}),
       logo_url !== undefined ? (logo_url || null) : null,
       qr_url !== undefined ? (qr_url || null) : null,
+      city || null,
+      mission_statement || null,
       orgId
     ).run();
 

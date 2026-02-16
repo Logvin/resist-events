@@ -24,6 +24,8 @@ CREATE TABLE organizations (
   socials TEXT DEFAULT '{}', -- JSON: { fb, ig, x, rd, sc, sg }
   logo_url TEXT,
   qr_url TEXT,
+  city TEXT,
+  mission_statement TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 

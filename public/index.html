@@ -140,18 +140,53 @@
   <div id="section-calendar" class="section-panel">
     <h2 class="section-title">Event Calendar</h2>
     <p class="section-subtitle">Browse all scheduled events</p>
-    <div class="cal-nav">
-      <button class="btn btn-ghost" onclick="changeMonth(-1)">&larr; Prev</button>
-      <h3 id="calMonthLabel"></h3>
-      <button class="btn btn-ghost" onclick="changeMonth(1)">Next &rarr;</button>
+
+    <!-- View Toggle -->
+    <div class="cal-view-toggle">
+      <button class="cal-toggle-btn active" id="toggleAgenda" onclick="switchCalView('agenda')">Agenda</button>
+      <button class="cal-toggle-btn" id="toggleMonth" onclick="switchCalView('month')">Month</button>
     </div>
-    <div class="calendar-grid" id="calendarGrid"></div>
+
+    <!-- Agenda View (default) -->
+    <div id="agendaView">
+      <div class="agenda-nav">
+        <button class="btn btn-ghost" onclick="changeWeek(-1)">&larr; Previous</button>
+        <div class="agenda-nav-center">
+          <h3 id="agendaWeekLabel"></h3>
+          <span class="agenda-this-week" id="agendaThisWeek"></span>
+        </div>
+        <button class="btn btn-ghost" onclick="changeWeek(1)">Next &rarr;</button>
+      </div>
+      <div class="agenda-legend" id="agendaLegend"></div>
+      <div id="agendaDays"></div>
+    </div>
+
+    <!-- Month View (existing, hidden by default) -->
+    <div id="monthView" style="display:none;">
+      <div class="cal-nav">
+        <button class="btn btn-ghost" onclick="changeMonth(-1)">&larr; Prev</button>
+        <h3 id="calMonthLabel"></h3>
+        <button class="btn btn-ghost" onclick="changeMonth(1)">Next &rarr;</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
   </div>
 
   <!-- ORGANIZATIONS -->
   <div id="section-orgs" class="section-panel">
-    <h2 class="section-title">Participating Organizations</h2>
-    <p class="section-subtitle" id="orgsSubtitle">Groups working together</p>
+    <div class="orgs-header">
+      <div class="orgs-header-left">
+        <h2 class="section-title">Participating Organizations</h2>
+        <p class="section-subtitle" id="orgsSubtitle">Groups working together</p>
+      </div>
+      <div class="orgs-header-right">
+        <input type="text" class="form-input" id="orgsSearch" placeholder="Search orgs..." oninput="filterOrgs()">
+        <select class="form-input" id="orgsCityFilter" onchange="filterOrgs()">
+          <option value="">All Cities</option>
+        </select>
+      </div>
+    </div>
+    <div class="orgs-stats" id="orgsStats"></div>
     <div id="orgsList"></div>
   </div>
 
@@ -489,8 +524,23 @@
         <input type="text" class="form-input" id="profileOrgName">
       </div>
       <div class="form-group">
-        <label class="form-label">Organization Website</label>
-        <input type="url" class="form-input" id="profileOrgWebsite" placeholder="https://...">
+        <label class="form-label">Mission Statement</label>
+        <textarea class="form-input" id="profileMission" rows="2" maxlength="140"
+          oninput="updateMissionCounter()" placeholder="A short sentence describing your org..."></textarea>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:11px;color:var(--text-dim);">Shown on the public organizations page.</span>
+          <span id="missionCounter" style="font-size:11px;color:var(--text-dim);">0 / 140</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Organization Website</label>
+          <input type="url" class="form-input" id="profileOrgWebsite" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" class="form-input" id="profileCity" placeholder="e.g. Camelot">
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -591,8 +641,22 @@
         <input type="text" class="form-input" id="orgEditAbbr" placeholder="e.g. KRT" maxlength="10">
       </div>
       <div class="form-group">
-        <label class="form-label">Website</label>
-        <input type="url" class="form-input" id="orgEditWebsite" placeholder="https://...">
+        <label class="form-label">Mission Statement</label>
+        <textarea class="form-input" id="orgEditMission" rows="2" maxlength="140"
+          oninput="updateOrgEditMissionCounter()" placeholder="A short sentence describing your org..."></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+          <span id="orgEditMissionCounter" style="font-size:11px;color:var(--text-dim);">0 / 140</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Website</label>
+          <input type="url" class="form-input" id="orgEditWebsite" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" class="form-input" id="orgEditCity" placeholder="e.g. Camelot">
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group">

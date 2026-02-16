@@ -2,6 +2,8 @@
 let currentSection = 'home';
 let calMonth = new Date().getMonth();
 let calYear = new Date().getFullYear();
+let calView = 'agenda';
+let agendaWeekStart = null;
 let showArchived = false;
 let showArchivedTopics = false;
 let eventsPage = 1;
@@ -86,7 +88,10 @@ function showSection(section) {
   });
 
   if (section === 'today') renderTodayEvents();
-  if (section === 'calendar') renderCalendar();
+  if (section === 'calendar') {
+    if (calView === 'agenda') renderAgenda();
+    else renderCalendar();
+  }
   if (section === 'orgs') renderOrgs();
   if (section === 'myEvents') { eventsPage = 1; renderMyEvents(); }
   if (section === 'contact') { viewingThread = null; renderContact(); }
@@ -372,24 +377,218 @@ function changeMonth(delta) {
   renderCalendar();
 }
 
+// ======= AGENDA VIEW =======
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function switchCalView(view) {
+  calView = view;
+  document.getElementById('toggleAgenda').classList.toggle('active', view === 'agenda');
+  document.getElementById('toggleMonth').classList.toggle('active', view === 'month');
+  document.getElementById('agendaView').style.display = view === 'agenda' ? '' : 'none';
+  document.getElementById('monthView').style.display = view === 'month' ? '' : 'none';
+  if (view === 'agenda') renderAgenda();
+  else renderCalendar();
+}
+
+function changeWeek(delta) {
+  if (!agendaWeekStart) agendaWeekStart = getMonday(new Date());
+  agendaWeekStart.setDate(agendaWeekStart.getDate() + delta * 7);
+  renderAgenda();
+}
+
+function getEventTypeColor(type) {
+  const map = {
+    march: 'var(--type-march)',
+    protest_gathering: 'var(--type-protest)',
+    community_event: 'var(--type-community)',
+    virtual: 'var(--type-virtual)',
+    signature_gathering: 'var(--type-signature)',
+  };
+  return map[type] || 'var(--text-dim)';
+}
+
+async function renderAgenda() {
+  await loadEvents();
+  if (!agendaWeekStart) agendaWeekStart = getMonday(new Date());
+
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(agendaWeekStart);
+    d.setDate(d.getDate() + i);
+    weekDates.push(d);
+  }
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const mon = weekDates[0];
+  const sun = weekDates[6];
+  let label;
+  if (mon.getMonth() === sun.getMonth()) {
+    label = `${monthNames[mon.getMonth()]} ${mon.getDate()} – ${sun.getDate()}, ${mon.getFullYear()}`;
+  } else if (mon.getFullYear() === sun.getFullYear()) {
+    label = `${monthNames[mon.getMonth()]} ${mon.getDate()} – ${monthNames[sun.getMonth()]} ${sun.getDate()}, ${mon.getFullYear()}`;
+  } else {
+    label = `${monthNames[mon.getMonth()]} ${mon.getDate()}, ${mon.getFullYear()} – ${monthNames[sun.getMonth()]} ${sun.getDate()}, ${sun.getFullYear()}`;
+  }
+  document.getElementById('agendaWeekLabel').textContent = label;
+
+  const today = new Date();
+  const currentMonday = getMonday(today);
+  const isThisWeek = agendaWeekStart.getTime() === currentMonday.getTime();
+  document.getElementById('agendaThisWeek').textContent = isThisWeek ? 'This Week' : '';
+
+  // Render legend
+  const legendTypes = [
+    { type: 'march', label: 'March' },
+    { type: 'protest_gathering', label: 'Protest' },
+    { type: 'community_event', label: 'Community' },
+    { type: 'virtual', label: 'Virtual' },
+    { type: 'signature_gathering', label: 'Signature Gathering' },
+  ];
+  document.getElementById('agendaLegend').innerHTML = legendTypes.map(t =>
+    `<div class="agenda-legend-item"><span class="agenda-legend-dot" style="background:${getEventTypeColor(t.type)}"></span>${t.label}</div>`
+  ).join('');
+
+  const publishedEvents = cachedEvents.filter(e => e.status === 'published');
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  let html = '';
+  let todayBlockId = null;
+
+  for (const date of weekDates) {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const isToday = dateStr === todayStr;
+    const dayEvents = publishedEvents.filter(e => e.date === dateStr).sort((a, b) => {
+      const ta = a.start_time || '00:00';
+      const tb = b.start_time || '00:00';
+      return ta.localeCompare(tb);
+    });
+
+    const blockId = 'agenda-day-' + dateStr;
+    if (isToday) todayBlockId = blockId;
+
+    html += `<div class="agenda-day-block" id="${blockId}">`;
+    html += `<div class="agenda-day-header ${isToday ? 'is-today' : ''}">
+      <span class="agenda-day-name">${dayNames[date.getDay()]}</span>
+      <span class="agenda-day-date">${monthNames[date.getMonth()]} ${date.getDate()}</span>
+      <span class="agenda-count-badge">${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}</span>
+    </div>`;
+
+    if (dayEvents.length === 0) {
+      html += `<div class="agenda-empty-day">No events scheduled</div>`;
+    } else {
+      for (const event of dayEvents) {
+        html += renderAgendaEventCard(event);
+      }
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('agendaDays').innerHTML = html;
+
+  if (todayBlockId && isThisWeek) {
+    setTimeout(() => {
+      const el = document.getElementById(todayBlockId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+}
+
+function renderAgendaEventCard(event) {
+  const orgName = event.org_name || '';
+  const startTime = event.start_time || '';
+  const endTime = event.end_time || '';
+  const typeColor = getEventTypeColor(event.event_type);
+  const location = event.address || (event.is_virtual ? 'Virtual / Online' : '');
+
+  return `<div class="agenda-event-card" onclick="openEventDetail(${event.id})">
+    <div class="agenda-time-block">
+      <div class="agenda-time-start">${escHtml(startTime)}</div>
+      ${endTime ? `<div class="agenda-time-end">${escHtml(endTime)}</div>` : ''}
+    </div>
+    <div class="agenda-event-details">
+      <div class="agenda-event-title">${escHtml(event.title)}</div>
+      <div class="agenda-event-org">
+        ${orgName ? `<span>${escHtml(orgName)}</span>` : ''}
+        ${event.is_verified ? '<span class="verified-badge" title="Verified org">&#x2713;</span>' : ''}
+      </div>
+      ${location ? `<div class="agenda-event-location">${escHtml(location)}</div>` : ''}
+      <div class="agenda-event-tags">
+        ${event.event_type ? `<span class="agenda-type-dot" style="background:${typeColor}"></span><span class="event-tag">${escHtml(formatEventType(event.event_type))}</span>` : ''}
+        ${event.registration_required ? '<span class="event-tag reg-required">Reg. Required</span>' : ''}
+        ${event.is_virtual ? '<span class="event-tag virtual-tag">Virtual</span>' : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
 // ======= ORGANIZATIONS =======
 async function renderOrgs() {
   await loadOrgs();
-  document.getElementById('orgsList').innerHTML = cachedOrgs.map(org => {
+  // Populate city dropdown from distinct cities
+  const cities = [...new Set(cachedOrgs.map(o => o.city).filter(Boolean))].sort();
+  const citySelect = document.getElementById('orgsCityFilter');
+  citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${escAttr(c)}">${escHtml(c)}</option>`).join('');
+  // Clear search
+  document.getElementById('orgsSearch').value = '';
+  filterOrgs();
+}
+
+function filterOrgs() {
+  const search = (document.getElementById('orgsSearch').value || '').toLowerCase().trim();
+  const cityVal = document.getElementById('orgsCityFilter').value;
+
+  let filtered = cachedOrgs;
+  if (search) {
+    filtered = filtered.filter(o => o.name.toLowerCase().includes(search));
+  }
+  if (cityVal) {
+    filtered = filtered.filter(o => o.city === cityVal);
+  }
+
+  // Stats bar
+  const distinctCities = [...new Set(filtered.map(o => o.city).filter(Boolean))].length;
+  const totalEvents = filtered.reduce((sum, o) => sum + (o.event_count || 0), 0);
+  document.getElementById('orgsStats').innerHTML = `
+    <div class="orgs-stat-block"><span class="orgs-stat-value">${filtered.length}</span><span class="orgs-stat-label">Organizations</span></div>
+    <div class="orgs-stat-block"><span class="orgs-stat-value">${distinctCities}</span><span class="orgs-stat-label">Cities</span></div>
+    <div class="orgs-stat-block"><span class="orgs-stat-value">${totalEvents}</span><span class="orgs-stat-label">Events Hosted</span></div>
+  `;
+
+  // Render cards
+  document.getElementById('orgsList').innerHTML = filtered.map(org => {
     const socials = org.socials || {};
+    const initials = (org.abbreviation || org.name.split(' ').map(w => w[0]).join('')).slice(0, 3);
+    const websiteDisplay = org.website
+      ? `<a href="${escAttr(org.website)}" class="org-website-link" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escHtml(org.website.replace(/^https?:\/\//, ''))}</a>`
+      : '<span class="org-website-none">No website listed</span>';
+    const eventCount = org.event_count || 0;
+
     return `
       <div class="org-card">
         ${org.logo_url
-          ? `<img src="${escAttr(org.logo_url)}" class="org-avatar" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'org-avatar\\'>${escHtml(org.abbreviation || '')}</div>'">`
-          : `<div class="org-avatar">${escHtml(org.abbreviation || '')}</div>`
+          ? `<img src="${escAttr(org.logo_url)}" class="org-avatar" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'org-avatar\\'>${escHtml(initials)}</div>'">`
+          : `<div class="org-avatar">${escHtml(initials)}</div>`
         }
         <div class="org-info">
-          <h4>${escHtml(org.name)}</h4>
-          <p>${org.website ? escHtml(org.website) : 'No website listed'}</p>
+          <div class="org-name-row">
+            <span class="org-name">${escHtml(org.name)}</span>
+            ${org.verified ? '<span class="org-verified-badge" title="Verified organization">&#x2713;</span>' : ''}
+            <span class="org-event-pill">${eventCount} event${eventCount !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="org-mission">${org.mission_statement ? escHtml(org.mission_statement) : ''}</div>
+          <div class="org-website">${websiteDisplay}</div>
         </div>
         <div class="org-links">
           ${['fb','ig','sc','sg','rd','x'].filter(k => socials[k]).map(k =>
-            `<a href="${escAttr(socials[k])}" class="org-link-icon social-${k}" title="${socialTitles[k]}" target="_blank" rel="noopener">${socialSvgs[k]}</a>`
+            `<a href="${escAttr(socials[k])}" class="org-link-icon social-${k}" title="${socialTitles[k]}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${socialSvgs[k]}</a>`
           ).join('')}
         </div>
       </div>
@@ -990,8 +1189,11 @@ async function onProfileOrgChange() {
   if (!org) return;
 
   document.getElementById('profileOrgName').value = org.name || '';
+  document.getElementById('profileMission').value = org.mission_statement || '';
   document.getElementById('profileOrgWebsite').value = org.website || '';
+  document.getElementById('profileCity').value = org.city || '';
   document.getElementById('profileLogoUrl').value = org.logo_url || '';
+  updateMissionCounter();
   document.getElementById('profileQrUrl').value = org.qr_url || '';
 
   // Preview images
@@ -1018,6 +1220,16 @@ function updateImagePreview(inputId, previewId) {
   } else {
     preview.innerHTML = '';
   }
+}
+
+function updateMissionCounter() {
+  const len = (document.getElementById('profileMission').value || '').length;
+  document.getElementById('missionCounter').textContent = len + ' / 140';
+}
+
+function updateOrgEditMissionCounter() {
+  const len = (document.getElementById('orgEditMission').value || '').length;
+  document.getElementById('orgEditMissionCounter').textContent = len + ' / 140';
 }
 
 async function loadProfileMembers(orgId) {
@@ -1085,7 +1297,9 @@ async function saveProfile() {
     return;
   }
   const name = document.getElementById('profileOrgName').value.trim();
+  const mission_statement = document.getElementById('profileMission').value.trim();
   const website = document.getElementById('profileOrgWebsite').value.trim();
+  const city = document.getElementById('profileCity').value.trim();
   const logo_url = document.getElementById('profileLogoUrl').value.trim();
   const qr_url = document.getElementById('profileQrUrl').value.trim();
   const socials = {
@@ -1100,7 +1314,7 @@ async function saveProfile() {
   try {
     await api('/orgs', {
       method: 'PUT',
-      body: JSON.stringify({ org_id: profileOrgId, name, website, socials, logo_url, qr_url }),
+      body: JSON.stringify({ org_id: profileOrgId, name, website, socials, logo_url, qr_url, city, mission_statement }),
     });
     closeModal('profileModal');
     showToast('Profile updated!');
@@ -1442,9 +1656,12 @@ async function openOrgEditModal(org) {
   document.getElementById('orgEditModalTitle').textContent = org ? 'Edit Organization' : 'Add Organization';
   document.getElementById('orgEditName').value = org ? org.name : '';
   document.getElementById('orgEditAbbr').value = org ? org.abbreviation : '';
+  document.getElementById('orgEditMission').value = org ? (org.mission_statement || '') : '';
   document.getElementById('orgEditWebsite').value = org ? (org.website || '') : '';
+  document.getElementById('orgEditCity').value = org ? (org.city || '') : '';
   document.getElementById('orgEditLogoUrl').value = org ? (org.logo_url || '') : '';
   document.getElementById('orgEditQrUrl').value = org ? (org.qr_url || '') : '';
+  updateOrgEditMissionCounter();
   updateImagePreview('orgEditLogoUrl', 'orgEditLogoPreview');
   updateImagePreview('orgEditQrUrl', 'orgEditQrPreview');
   const socials = org ? (org.socials || {}) : {};
@@ -1511,7 +1728,9 @@ async function saveOrgEdit() {
   const id = document.getElementById('orgEditId').value;
   const name = document.getElementById('orgEditName').value.trim();
   const abbreviation = document.getElementById('orgEditAbbr').value.trim();
+  const mission_statement = document.getElementById('orgEditMission').value.trim();
   const website = document.getElementById('orgEditWebsite').value.trim();
+  const city = document.getElementById('orgEditCity').value.trim();
   const logo_url = document.getElementById('orgEditLogoUrl').value.trim();
   const qr_url = document.getElementById('orgEditQrUrl').value.trim();
   const socials = {
@@ -1530,9 +1749,9 @@ async function saveOrgEdit() {
 
   try {
     if (id) {
-      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url }) });
+      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement }) });
     } else {
-      await api('/orgs', { method: 'POST', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url }) });
+      await api('/orgs', { method: 'POST', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement }) });
     }
     closeModal('orgEditModal');
     showToast(id ? 'Organization updated!' : 'Organization created!');

@@ -21,6 +21,8 @@ export async function onRequestPut(context) {
     if (body.socials !== undefined) { fields.push('socials = ?'); values.push(JSON.stringify(body.socials)); }
     if (body.logo_url !== undefined) { fields.push('logo_url = ?'); values.push(body.logo_url || null); }
     if (body.qr_url !== undefined) { fields.push('qr_url = ?'); values.push(body.qr_url || null); }
+    if (body.city !== undefined) { fields.push('city = ?'); values.push(body.city || null); }
+    if (body.mission_statement !== undefined) { fields.push('mission_statement = ?'); values.push(body.mission_statement || null); }
 
     if (fields.length === 0) {
       return Response.json({ error: 'No fields to update' }, { status: 400 });

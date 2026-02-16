@@ -22,15 +22,15 @@ INSERT INTO site_config (key, value) VALUES ('purpose_text', '
 ');
 
 -- Organizations
-INSERT INTO organizations (id, name, abbreviation, website, socials) VALUES
-  (1, 'Knights of the Round Table', 'KRT', 'https://roundtable.camelot', '{"fb":"https://facebook.com/roundtable","ig":"https://instagram.com/knightsrt"}'),
-  (2, 'Peasants'' Autonomous Collective', 'PAC', 'https://peasants-collective.camelot', '{"fb":"https://facebook.com/peasants","rd":"https://reddit.com/r/peasants"}'),
-  (3, 'Knights Who Say Ni', 'NI', NULL, '{"x":"https://x.com/knightswhosyni"}'),
-  (4, 'Camelot Women''s Guild', 'CWG', 'https://womensguild.camelot', '{"ig":"https://instagram.com/cwg"}'),
-  (5, 'Holy Hand Grenade Society', 'HHGS', NULL, '{}'),
-  (6, 'Swamp Castle Progressives', 'SCP', 'https://swampcastle.camelot', '{"fb":"https://facebook.com/swampcastle"}'),
-  (7, 'Ministry of Silly Walks', 'MSW', 'https://sillywalks.gov.camelot', '{"ig":"https://instagram.com/sillywalks","x":"https://x.com/sillywalks"}'),
-  (8, 'Dead Parrot Advocacy League', 'DPAL', NULL, '{"rd":"https://reddit.com/r/deadparrot"}');
+INSERT INTO organizations (id, name, abbreviation, website, socials, city, mission_statement) VALUES
+  (1, 'Knights of the Round Table', 'KRT', 'https://roundtable.camelot', '{"fb":"https://facebook.com/roundtable","ig":"https://instagram.com/knightsrt"}', 'Camelot', 'Defending the realm through chivalry, justice, and the quest for the Holy Grail.'),
+  (2, 'Peasants'' Autonomous Collective', 'PAC', 'https://peasants-collective.camelot', '{"fb":"https://facebook.com/peasants","rd":"https://reddit.com/r/peasants"}', 'Muddy Village', 'An anarcho-syndicalist commune demanding fair representation and peasant rights.'),
+  (3, 'Knights Who Say Ni', 'NI', NULL, '{"x":"https://x.com/knightswhosyni"}', 'Forest of Ni', 'Protecting the sacred forests and demanding shrubberies for environmental justice.'),
+  (4, 'Camelot Women''s Guild', 'CWG', 'https://womensguild.camelot', '{"ig":"https://instagram.com/cwg"}', 'Camelot', 'Empowering women across the realm through education, advocacy, and community action.'),
+  (5, 'Holy Hand Grenade Society', 'HHGS', NULL, '{}', 'Camelot', 'Promoting safe handling of holy relics and proper counting techniques since 932 AD.'),
+  (6, 'Swamp Castle Progressives', 'SCP', 'https://swampcastle.camelot', '{"fb":"https://facebook.com/swampcastle"}', 'Swamp Castle', 'Building a better future on solid ground — or at least trying to stop sinking.'),
+  (7, 'Ministry of Silly Walks', 'MSW', 'https://sillywalks.gov.camelot', '{"ig":"https://instagram.com/sillywalks","x":"https://x.com/sillywalks"}', 'Camelot', 'Advancing pedestrian creativity and securing government funding for silly walks.'),
+  (8, 'Dead Parrot Advocacy League', 'DPAL', NULL, '{"rd":"https://reddit.com/r/deadparrot"}', 'Stinking Fen', 'Fighting for consumer rights and truth in pet shop advertising.');
 
 -- Users (demo users for each role)
 INSERT INTO users (id, email, display_name, role, org_id) VALUES
