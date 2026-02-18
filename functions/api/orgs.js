@@ -9,6 +9,7 @@ export async function onRequestGet(context) {
 
   try {
     let query = `SELECT o.id, o.name, o.abbreviation, o.website, o.socials, o.logo_url, o.qr_url, o.city, o.mission_statement,
+       o.can_self_publish, o.can_cross_publish,
        COUNT(DISTINCT e.id) as event_count,
        COUNT(DISTINCT uo.user_id) > 0 as verified
     FROM organizations o
@@ -44,14 +45,14 @@ export async function onRequestPost(context) {
 
   try {
     const body = await context.request.json();
-    const { name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement } = body;
+    const { name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement, can_self_publish, can_cross_publish } = body;
 
     if (!name || !abbreviation) {
       return Response.json({ error: 'Name and abbreviation are required' }, { status: 400 });
     }
 
     const result = await db.prepare(
-      'INSERT INTO organizations (name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO organizations (name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement, can_self_publish, can_cross_publish) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(
       name,
       abbreviation,
@@ -60,7 +61,9 @@ export async function onRequestPost(context) {
       logo_url || null,
       qr_url || null,
       city || null,
-      mission_statement || null
+      mission_statement || null,
+      can_self_publish ? 1 : 0,
+      can_cross_publish ? 1 : 0
     ).run();
 
     return Response.json({ ok: true, id: result.meta.last_row_id });
@@ -93,11 +96,11 @@ export async function onRequestPut(context) {
       if (!membership) return Response.json({ error: 'Not a member of this organization' }, { status: 403 });
     }
 
-    const { name, website, socials, logo_url, qr_url, city, mission_statement } = body;
+    const { name, website, socials, logo_url, qr_url, city, mission_statement, can_self_publish, can_cross_publish } = body;
 
-    await db.prepare(
-      'UPDATE organizations SET name = ?, website = ?, socials = ?, logo_url = ?, qr_url = ?, city = ?, mission_statement = ? WHERE id = ?'
-    ).bind(
+    // Build update - only admin can set publishing permissions
+    let sql = 'UPDATE organizations SET name = ?, website = ?, socials = ?, logo_url = ?, qr_url = ?, city = ?, mission_statement = ?';
+    const params = [
       name || '',
       website || '',
       JSON.stringify(socials || {}),
@@ -105,8 +108,21 @@ export async function onRequestPut(context) {
       qr_url !== undefined ? (qr_url || null) : null,
       city || null,
       mission_statement || null,
-      orgId
-    ).run();
+    ];
+
+    if (role === 'admin' && can_self_publish !== undefined) {
+      sql += ', can_self_publish = ?';
+      params.push(can_self_publish ? 1 : 0);
+    }
+    if (role === 'admin' && can_cross_publish !== undefined) {
+      sql += ', can_cross_publish = ?';
+      params.push(can_cross_publish ? 1 : 0);
+    }
+
+    sql += ' WHERE id = ?';
+    params.push(orgId);
+
+    await db.prepare(sql).bind(...params).run();
 
     return Response.json({ ok: true });
   } catch (e) {

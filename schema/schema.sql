@@ -1,5 +1,6 @@
 -- Resist Events D1 Schema
 
+DROP TABLE IF EXISTS event_published_seen;
 DROP TABLE IF EXISTS review_seen;
 DROP TABLE IF EXISTS message_reads;
 DROP TABLE IF EXISTS user_orgs;
@@ -26,6 +27,8 @@ CREATE TABLE organizations (
   qr_url TEXT,
   city TEXT,
   mission_statement TEXT,
+  can_self_publish INTEGER DEFAULT 0,
+  can_cross_publish INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -41,7 +44,8 @@ CREATE TABLE users (
 CREATE TABLE events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
-  org_id INTEGER NOT NULL REFERENCES organizations(id),
+  org_id INTEGER REFERENCES organizations(id),
+  created_by INTEGER REFERENCES users(id),
   date TEXT NOT NULL, -- YYYY-MM-DD
   start_time TEXT,
   end_time TEXT,
@@ -76,6 +80,8 @@ CREATE TABLE messages (
   topic TEXT NOT NULL,
   org_id INTEGER REFERENCES organizations(id),
   event_id INTEGER REFERENCES events(id),
+  message_type TEXT NOT NULL DEFAULT 'org',
+  user_id INTEGER REFERENCES users(id),
   archived INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
@@ -110,9 +116,16 @@ CREATE TABLE review_seen (
   PRIMARY KEY (user_id, event_id)
 );
 
+CREATE TABLE event_published_seen (
+  user_id INTEGER NOT NULL,
+  event_id INTEGER NOT NULL REFERENCES events(id),
+  PRIMARY KEY (user_id, event_id)
+);
+
 -- Indexes
 CREATE INDEX idx_events_date ON events(date);
 CREATE INDEX idx_events_org ON events(org_id);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_messages_org ON messages(org_id);
+CREATE INDEX idx_messages_user ON messages(user_id);
 CREATE INDEX idx_replies_message ON message_replies(message_id);

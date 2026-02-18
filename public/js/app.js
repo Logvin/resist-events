@@ -20,6 +20,12 @@ let pendingMessageOrgId = null;
 let pendingMessageEventId = null;
 let _currentDetailEvent = null;
 
+// Admin messages state
+let cachedAdminMessages = [];
+let showAdminArchivedMessages = false;
+let adminViewingThread = null;
+let adminMsgRecipientType = 'org';
+
 // ======= SOCIAL ICON SVGS =======
 const socialSvgs = {
   fb: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
@@ -98,9 +104,12 @@ function showSection(section) {
   if (section === 'home') renderHomeEvents();
   if (section === 'newEvent' && !editingEventId && !cloningEvent) resetEventForm();
   if (section === 'newEvent') cloningEvent = false;
+  if (section === 'adminMessages') { adminViewingThread = null; renderAdminMessages(); }
   if (section === 'reviewQueue') renderReviewQueue();
   if (section === 'manageOrgs') renderAdminOrgs();
   if (section === 'manageUsers') renderAdminUsers();
+  if (section === 'eventSettings') renderEventSettings();
+  if (section === 'siteSettings') renderHomepageSettings();
 }
 
 // ======= MODAL =======
@@ -108,6 +117,7 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
   document.body.style.overflow = 'hidden';
   if (id === 'purposeModal') loadPurpose();
+  if (id === 'newMessageModal') populateSendAsDropdown();
 }
 
 function closeModal(id) {
@@ -159,7 +169,8 @@ function createEventCard(event) {
   const isHostOrg = event.org_is_host;
   const startTime = event.start_time || '';
   const endTime = event.end_time || '';
-  const orgName = event.org_name || '';
+  const orgName = event.org_name || (AppConfig.siteName + ' Admin');
+  const showVerified = isHostOrg && event.org_name;
   const desc = event.description || '';
 
   return `
@@ -168,7 +179,7 @@ function createEventCard(event) {
       <div class="event-card-title">${escHtml(event.title)}</div>
       <div class="event-card-org">
         ${escHtml(orgName)}
-        ${isHostOrg ? '<span class="verified-badge" title="Event added by hosting organization">&#x2713;</span>' : ''}
+        ${showVerified ? '<span class="verified-badge" title="Event added by hosting organization">&#x2713;</span>' : ''}
       </div>
       <div class="event-card-desc">${escHtml(desc)}</div>
       <div class="event-card-footer">
@@ -209,7 +220,14 @@ async function openEventDetail(id, footerHtml) {
   if (canEdit && !footerHtml) {
     finalFooterHtml = `<button class="btn btn-secondary btn-sm" onclick="closeEventDetailModal(); editEvent(${event.id})">Edit Event</button>`;
   }
+  // Add "Message Organizer" button for admin (when not already in custom footer with messaging)
+  if (DemoSession.role === 'admin' && !footerHtml) {
+    finalFooterHtml += `<button class="btn btn-ghost btn-sm" onclick="toggleEventMessages(${event.id})">Message Organizer</button>`;
+  }
   const footerSection = finalFooterHtml ? `<div class="modal-footer">${finalFooterHtml}</div>` : '';
+
+  const displayOrgName = event.org_name || (AppConfig.siteName + ' Admin');
+  const showVerifiedDetail = event.org_is_host && event.org_name;
 
   const detailHTML = `
     <div class="modal-overlay open" id="eventDetailModal" onclick="if(event.target===this){this.remove();document.body.style.overflow='';}">
@@ -223,8 +241,8 @@ async function openEventDetail(id, footerHtml) {
         </div>
         <div class="modal-body">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-            <span style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-muted);">${escHtml(event.org_name || '')}</span>
-            ${event.org_is_host ? '<span class="verified-badge" title="Event added by hosting organization">&#x2713;</span>' : ''}
+            <span style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-muted);">${escHtml(displayOrgName)}</span>
+            ${showVerifiedDetail ? '<span class="verified-badge" title="Event added by hosting organization">&#x2713;</span>' : ''}
             ${event.reg_required ? '<span class="event-tag reg-required" style="margin-left:auto;">Registration Required</span>' : ''}
           </div>
           <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin-bottom:16px;font-size:14px;">
@@ -241,12 +259,22 @@ async function openEventDetail(id, footerHtml) {
         </div>
         <div class="share-actions" id="shareActionsBar">
         </div>
+        <div id="eventMsgPanel"></div>
         ${footerSection}
       </div>
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', detailHTML);
   document.body.style.overflow = 'hidden';
+
+  // For organizers: check for unread messages on this event and auto-expand
+  if (DemoSession.role === 'organizer' || (DemoSession.role === 'admin' && !footerHtml)) {
+    checkEventUnreadMessages(event.id).then(hasUnread => {
+      if (hasUnread && DemoSession.role === 'organizer') {
+        toggleEventMessages(event.id);
+      }
+    });
+  }
 
   // Populate share-actions with role-based buttons
   const hasExternalFlyer = !!event.flyer_url;
@@ -284,12 +312,10 @@ function closeEventDetailModal() {
 
 async function openReviewEventDetail(id) {
   const event = cachedEvents.find(e => e.id === id);
-  const orgId = event ? event.org_id : null;
-  const eventTitle = event ? event.title : '';
   const footerHtml = `
     <button class="btn btn-success btn-sm" onclick="closeEventDetailModal(); approveEvent(${id})">Approve</button>
     <button class="btn btn-danger btn-sm" onclick="closeEventDetailModal(); rejectEvent(${id})">Reject</button>
-    <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="closeEventDetailModal(); openMessageOrgModal(${orgId}, '${escHtml(eventTitle).replace(/'/g, "\\'")}', ${id})">Message Org</button>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="toggleEventMessages(${id})">Message Organizer</button>
   `;
   await openEventDetail(id, footerHtml);
 }
@@ -502,7 +528,8 @@ async function renderAgenda() {
 }
 
 function renderAgendaEventCard(event) {
-  const orgName = event.org_name || '';
+  const orgName = event.org_name || (AppConfig.siteName + ' Admin');
+  const showVerified = event.org_is_host && event.org_name;
   const startTime = event.start_time || '';
   const endTime = event.end_time || '';
   const typeColor = getEventTypeColor(event.event_type);
@@ -516,8 +543,8 @@ function renderAgendaEventCard(event) {
     <div class="agenda-event-details">
       <div class="agenda-event-title">${escHtml(event.title)}</div>
       <div class="agenda-event-org">
-        ${orgName ? `<span>${escHtml(orgName)}</span>` : ''}
-        ${event.is_verified ? '<span class="verified-badge" title="Verified org">&#x2713;</span>' : ''}
+        <span>${escHtml(orgName)}</span>
+        ${showVerified ? '<span class="verified-badge" title="Verified org">&#x2713;</span>' : ''}
       </div>
       ${location ? `<div class="agenda-event-location">${escHtml(location)}</div>` : ''}
       <div class="agenda-event-tags">
@@ -600,6 +627,7 @@ function filterOrgs() {
 async function renderMyEvents() {
   showLoading('myEventsList');
   await loadEvents();
+  await loadMessages();
   const myOrgId = DemoSession.orgId;
   let events = cachedEvents.filter(e => {
     if (DemoSession.role === 'admin') return true;
@@ -626,10 +654,19 @@ async function renderMyEvents() {
     const statusClass = e.status === 'published' ? 'status-published' : e.status === 'review' ? 'status-review' : e.status === 'pending_org' ? 'status-pending-org' : e.status === 'draft' ? 'status-draft' : 'status-archived';
     const statusLabel = e.status === 'published' ? 'Published' : e.status === 'review' ? 'In Review' : e.status === 'pending_org' ? 'Pending Response' : e.status === 'draft' ? 'Draft' : 'Archived';
 
+    // Message badge: count unread messages for this event
+    const eventMsgCount = cachedMessages.filter(m => m.event_id === e.id && m.has_unread).length;
+    const msgBadgeHtml = eventMsgCount > 0 ? `<span class="event-msg-badge" title="${eventMsgCount} unread message(s)">${eventMsgCount}</span>` : '';
+
+    // Approved badge: if published and not yet seen
+    const approvedBadgeHtml = (e.status === 'published' && !e.published_seen && DemoSession.role !== 'admin') ? '<span class="approved-badge">Approved</span>' : '';
+
     return `
       <div class="event-list-item${e.status === 'archived' ? ' archived-row' : ''}" style="cursor:pointer;" onclick="openMyEventDetail(${e.id})">
         <div class="event-list-date">${formatDate(e.date)}</div>
         <div class="event-list-name">${escHtml(e.title)}</div>
+        ${msgBadgeHtml}
+        ${approvedBadgeHtml}
         ${e.status === 'pending_org'
           ? `<span class="event-list-status ${statusClass}" style="cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation(); goToEventMessage(${e.id})" title="View conversation">${statusLabel}</span>`
           : `<span class="event-list-status ${statusClass}">${statusLabel}</span>`
@@ -650,6 +687,22 @@ async function renderMyEvents() {
 
   document.getElementById('loadMoreEvents').style.display = events.length > pageEvents.length ? 'block' : 'none';
   document.getElementById('archiveToggle').textContent = showArchived ? 'Hide Archived' : 'Show Archived';
+
+  // Mark published events as seen
+  if (DemoSession.role !== 'admin') {
+    const publishedUnseen = pageEvents.filter(e => e.status === 'published' && !e.published_seen).map(e => e.id);
+    if (publishedUnseen.length > 0) {
+      try {
+        await api('/events/published-seen', { method: 'POST', body: JSON.stringify({ event_ids: publishedUnseen }) });
+        publishedUnseen.forEach(id => {
+          const ev = cachedEvents.find(e => e.id === id);
+          if (ev) ev.published_seen = true;
+        });
+      } catch (e) {
+        // Non-critical
+      }
+    }
+  }
 }
 
 function toggleArchivedEvents() {
@@ -707,6 +760,9 @@ async function editEvent(id) {
   setChipSelections('bringChips', event.bring_items || []);
   setChipSelections('noBringChips', event.no_bring_items || []);
 
+  // Populate sponsor org dropdown with event's current org pre-selected
+  populateSponsorOrg(event.org_id);
+
   showSection('newEvent');
 }
 
@@ -714,9 +770,8 @@ function resetEventForm() {
   editingEventId = null;
   document.getElementById('eventFormTitle').textContent = 'Register a New Event';
   document.getElementById('eventForm').reset();
-  if (DemoSession.orgName) {
-    document.getElementById('sponsorOrg').value = DemoSession.orgName;
-  }
+  // Populate sponsor org dropdown
+  populateSponsorOrg();
   // Reset event type
   setEventTypeValue('');
   // Reset virtual event
@@ -818,14 +873,10 @@ async function unarchiveEvent(id) {
 
 // ======= NAVIGATE TO EVENT MESSAGE =======
 async function goToEventMessage(eventId) {
-  await loadMessages();
-  const msg = cachedMessages.find(m => m.event_id === eventId);
-  if (msg) {
-    showSection('contact');
-    viewThread(msg.id);
-  } else {
-    showToast('Conversation not found');
-  }
+  // Open the event detail modal and auto-expand messages
+  await openMyEventDetail(eventId);
+  // Small delay to ensure modal is rendered, then expand messages
+  setTimeout(() => toggleEventMessages(eventId), 200);
 }
 
 // ======= MY EVENT DETAIL (organizer view) =======
@@ -844,6 +895,7 @@ async function openMyEventDetail(id) {
       <button class="btn btn-ghost btn-sm" onclick="closeEventDetailModal(); cloneEvent(${id})">Clone</button>
       <button class="btn btn-ghost btn-sm" onclick="closeEventDetailModal(); unarchiveEvent(${id})">Unarchive</button>
     `}
+    <button class="btn btn-ghost btn-sm" onclick="toggleEventMessages(${id})">Messages</button>
   `;
   await openEventDetail(id, footerHtml);
 }
@@ -895,9 +947,10 @@ async function renderContact() {
 async function viewThread(id) {
   viewingThread = id;
   await renderContact();
-  // After viewing a thread, the API marks it as read, so refresh badge
+  // After viewing a thread, the API marks it as read, so refresh badges
   cachedMessages = []; // Force reload on next badge update
   updateMessagesBadge();
+  updateMyEventsBadge();
 }
 
 async function renderThread(id) {
@@ -1027,7 +1080,20 @@ async function submitNewMessage() {
 
   try {
     const payload = { topic, text };
-    if (pendingMessageOrgId) payload.org_id = pendingMessageOrgId;
+    if (pendingMessageOrgId) {
+      payload.org_id = pendingMessageOrgId;
+    } else {
+      // Read Send As dropdown
+      const sendAs = document.getElementById('msgSendAs');
+      if (sendAs && sendAs.value) {
+        if (sendAs.value === 'personal') {
+          payload.message_type = 'direct';
+          payload.user_id = DemoSession.userId;
+        } else {
+          payload.org_id = parseInt(sendAs.value);
+        }
+      }
+    }
     if (pendingMessageEventId) payload.event_id = pendingMessageEventId;
     await api('/messages', {
       method: 'POST',
@@ -1042,12 +1108,195 @@ async function submitNewMessage() {
     // Refresh caches since message may have changed event status
     cachedMessages = [];
     cachedEvents = [];
+    cachedAdminMessages = [];
     if (currentSection === 'contact') renderContact();
+    if (currentSection === 'adminMessages') renderAdminMessages();
     if (currentSection === 'reviewQueue') renderReviewQueue();
     updateMessagesBadge();
-    if (DemoSession.role === 'admin') updateReviewBadge();
+    if (DemoSession.role === 'admin') {
+      updateReviewBadge();
+      updateAdminMessagesBadge();
+    }
   } catch (e) {
     showToast('Error sending message');
+  }
+}
+
+// ======= INLINE EVENT MESSAGING =======
+function toggleEventMessages(eventId) {
+  const panel = document.getElementById('eventMsgPanel');
+  if (!panel) return;
+  if (panel.innerHTML && panel.dataset.eventId == eventId) {
+    // Toggle off
+    panel.innerHTML = '';
+    panel.dataset.eventId = '';
+    return;
+  }
+  panel.dataset.eventId = eventId;
+  renderEventMessages(eventId);
+}
+
+async function hideEventMessages(eventId) {
+  // Mark messages as read before hiding
+  try {
+    const messages = await api('/messages?event_id=' + eventId);
+    if (messages.length > 0) {
+      // Reading the thread auto-marks as read on the server
+      await api('/messages/' + messages[0].id);
+    }
+  } catch (e) {
+    // ignore
+  }
+  // Clear cached messages to force reload on next badge check
+  cachedMessages = [];
+  // Close the panel
+  const panel = document.getElementById('eventMsgPanel');
+  if (panel) {
+    panel.innerHTML = '';
+    panel.dataset.eventId = '';
+  }
+  // Recalculate badges
+  updateMessagesBadge();
+  updateMyEventsBadge();
+}
+
+async function renderEventMessages(eventId) {
+  const panel = document.getElementById('eventMsgPanel');
+  if (!panel) return;
+
+  panel.innerHTML = '<div class="event-msg-panel"><div class="section-loading"><div class="spinner"></div> Loading...</div></div>';
+
+  let messages = [];
+  try {
+    messages = await api('/messages?event_id=' + eventId);
+  } catch (e) {
+    // ignore
+  }
+
+  // Get the event title for new thread topic
+  const event = cachedEvents.find(e => e.id === eventId) || _currentDetailEvent;
+  const eventTitle = event ? event.title : '';
+
+  // Load replies for existing threads
+  let allReplies = [];
+  let threadId = null;
+  if (messages.length > 0) {
+    threadId = messages[0].id;
+    try {
+      const thread = await api('/messages/' + threadId);
+      allReplies = thread.replies || [];
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  let html = '<div class="event-msg-panel">';
+  html += '<div class="msg-panel-note">This conversation is visible only to admins and the organizer for this event.</div>';
+
+  if (allReplies.length > 0) {
+    html += '<div class="msg-panel-thread">';
+    allReplies.forEach(msg => {
+      let senderLabel = msg.from_type === 'admin' ? 'Site Admin' : 'Organizer';
+      if (DemoSession.role === 'admin' && msg.user_email) {
+        senderLabel += ` (${escHtml(msg.user_email)})`;
+      }
+      html += `
+        <div class="msg-bubble ${msg.from_type === 'org' ? 'from-org' : 'from-admin'}">
+          ${escHtml(msg.text)}
+          <div class="msg-bubble-meta">${senderLabel} · ${formatTimestamp(msg.created_at)}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="msg-panel-empty">No messages yet. Start a conversation below.</div>';
+  }
+
+  html += `
+    <div class="msg-panel-reply">
+      <textarea id="eventMsgText" placeholder="Type a message..."></textarea>
+    </div>
+    <div class="msg-panel-actions">
+      <button class="btn btn-ghost btn-sm" onclick="hideEventMessages(${eventId})">Hide Conversation</button>
+      <button class="btn btn-primary btn-sm" onclick="sendEventMessage(${eventId})">Send</button>
+    </div>
+  `;
+  html += '</div>';
+  panel.innerHTML = html;
+
+  // Mark thread as read
+  if (threadId) {
+    try {
+      // Reading the thread via API auto-marks as read
+      cachedMessages = [];
+      updateMessagesBadge();
+      updateMyEventsBadge();
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
+async function sendEventMessage(eventId) {
+  const textEl = document.getElementById('eventMsgText');
+  if (!textEl) return;
+  const text = textEl.value.trim();
+  if (!text) return;
+
+  const event = cachedEvents.find(e => e.id === eventId) || _currentDetailEvent;
+  const eventTitle = event ? event.title : '';
+
+  // Check if a thread already exists for this event
+  let messages = [];
+  try {
+    messages = await api('/messages?event_id=' + eventId);
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    if (messages.length > 0) {
+      // Reply to existing thread
+      await api('/messages/' + messages[0].id, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+      });
+    } else {
+      // Create new thread
+      const payload = {
+        topic: 'Re: ' + eventTitle,
+        text,
+        event_id: eventId,
+      };
+      // Set org_id from the event
+      if (event && event.org_id) {
+        payload.org_id = event.org_id;
+      }
+      await api('/messages', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
+    showToast('Message sent!');
+    cachedMessages = [];
+    cachedAdminMessages = [];
+    cachedEvents = [];
+    await renderEventMessages(eventId);
+    updateMessagesBadge();
+    if (DemoSession.role === 'admin') {
+      updateAdminMessagesBadge();
+    }
+  } catch (e) {
+    showToast('Error sending message');
+  }
+}
+
+async function checkEventUnreadMessages(eventId) {
+  try {
+    const messages = await api('/messages?event_id=' + eventId);
+    return messages.some(m => m.has_unread);
+  } catch (e) {
+    return false;
   }
 }
 
@@ -1075,6 +1324,9 @@ async function saveEvent(status) {
   const bringItems = getSelectedChips('bringChips');
   const noBringItems = getSelectedChips('noBringChips');
 
+  // Get selected org from sponsor org dropdown
+  const selectedOrgId = getSelectedOrgId();
+
   const body = {
     title,
     date: dateStr,
@@ -1092,6 +1344,7 @@ async function saveEvent(status) {
     no_bring_items: noBringItems,
     event_type: getEventTypeValue(),
     status,
+    org_id: selectedOrgId,
   };
 
   try {
@@ -1130,7 +1383,7 @@ async function saveEvent(status) {
       } else {
         const result = await api('/events', { method: 'POST', body: JSON.stringify(body) });
         if (result.status === 'published' && status === 'review') {
-          showToast('Event published! (Auto-approved for your organization)');
+          showToast(DemoSession.role === 'admin' ? 'Event published!' : 'Event published! (Auto-approved for your organization)');
         } else {
           showToast(status === 'draft' ? 'Draft saved!' : 'Event submitted for review!');
         }
@@ -1539,6 +1792,28 @@ async function updateMessagesBadge() {
   }
 }
 
+// ======= MY EVENTS BADGE =======
+async function updateMyEventsBadge() {
+  await loadEvents();
+  await loadMessages();
+
+  // Count newly-approved events (published but not yet seen by organizer, own org only)
+  let approvedCount = 0;
+  if (DemoSession.role !== 'admin') {
+    approvedCount = cachedEvents.filter(e => e.status === 'published' && !e.published_seen && e.org_is_host).length;
+  }
+
+  // Count events with unread messages
+  const eventsWithUnread = cachedMessages.filter(m => !m.archived && m.has_unread && m.event_id).length;
+
+  const count = approvedCount + eventsWithUnread;
+  const badge = document.getElementById('myEventsBadge');
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+}
+
 // ======= ADMIN: REVIEW QUEUE =======
 async function updateReviewBadge() {
   await loadEvents();
@@ -1573,7 +1848,7 @@ async function renderReviewQueue() {
       <div class="event-list-date">${formatDate(e.date)}</div>
       <div class="event-list-name">${escHtml(e.title)}</div>
       ${isPending ? '<span class="event-list-status status-pending-org">Pending Response</span>' : ''}
-      <div style="font-size:12px;color:var(--text-dim);white-space:nowrap;">${escHtml(e.org_name || '')}</div>
+      <div style="font-size:12px;color:var(--text-dim);white-space:nowrap;">${escHtml(e.org_name || (AppConfig.siteName + ' Admin'))}</div>
       <div class="event-list-actions">
         <button class="btn btn-success btn-xs" onclick="event.stopPropagation(); approveEvent(${e.id})">Approve</button>
         <button class="btn btn-danger btn-xs" onclick="event.stopPropagation(); rejectEvent(${e.id})">Reject</button>
@@ -1672,6 +1947,16 @@ async function openOrgEditModal(org) {
   document.getElementById('orgEditX').value = socials.x || '';
   document.getElementById('orgEditRD').value = socials.rd || '';
 
+  // Publishing permissions (admin only)
+  const publishPermsSection = document.getElementById('orgEditPublishPerms');
+  if (DemoSession.role === 'admin') {
+    publishPermsSection.style.display = '';
+    document.getElementById('orgEditSelfPublish').checked = org ? !!org.can_self_publish : false;
+    document.getElementById('orgEditCrossPublish').checked = org ? !!org.can_cross_publish : false;
+  } else {
+    publishPermsSection.style.display = 'none';
+  }
+
   // Show organizers for existing orgs
   const organizersSection = document.getElementById('orgEditOrganizers');
   const organizersList = document.getElementById('orgEditOrganizersList');
@@ -1747,11 +2032,20 @@ async function saveOrgEdit() {
     return;
   }
 
+  // Publishing permissions
+  const can_self_publish = document.getElementById('orgEditSelfPublish').checked;
+  const can_cross_publish = document.getElementById('orgEditCrossPublish').checked;
+
   try {
+    const payload = { name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement };
+    if (DemoSession.role === 'admin') {
+      payload.can_self_publish = can_self_publish;
+      payload.can_cross_publish = can_cross_publish;
+    }
     if (id) {
-      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement }) });
+      await api('/orgs/' + id, { method: 'PUT', body: JSON.stringify(payload) });
     } else {
-      await api('/orgs', { method: 'POST', body: JSON.stringify({ name, abbreviation, website, socials, logo_url, qr_url, city, mission_statement }) });
+      await api('/orgs', { method: 'POST', body: JSON.stringify(payload) });
     }
     closeModal('orgEditModal');
     showToast(id ? 'Organization updated!' : 'Organization created!');
@@ -1916,7 +2210,7 @@ function copyEventDetails(event) {
     `${dayName}, ${dateFormatted}`,
     `${event.start_time || ''} – ${event.end_time || ''}`,
     locationLine,
-    `Hosted by: ${event.org_name || ''}`,
+    `Hosted by: ${event.org_name || (AppConfig.siteName + ' Admin')}`,
   ];
   if (orgWebsite) lines.push(orgWebsite);
   lines.push('', event.description || '');
@@ -1941,8 +2235,8 @@ function copyEventMarkdown(event) {
   const domain = AppConfig.domain || 'resist.events';
 
   const orgPart = orgWebsite
-    ? `**Hosted by:** ${event.org_name || ''} · ${orgWebsite}`
-    : `**Hosted by:** ${event.org_name || ''}`;
+    ? `**Hosted by:** ${event.org_name || (AppConfig.siteName + ' Admin')} · ${orgWebsite}`
+    : `**Hosted by:** ${event.org_name || (AppConfig.siteName + ' Admin')}`;
 
   const lines = [
     `## ${event.title}`,
@@ -2112,7 +2406,7 @@ function drawFlyerTemplate(canvas, event, templateIndex, isPreview) {
   const dateStr = formatDate(event.date);
   const timeStr = (event.start_time || '') + ' \u2013 ' + (event.end_time || '');
   const orgWebsite = event.website_url || '';
-  const orgName = event.org_name || '';
+  const orgName = event.org_name || (AppConfig.siteName + ' Admin');
   const genText = 'Generated by https://' + (AppConfig.domain || 'resist.events');
 
   // Parse date parts for Modern Clean date box
@@ -3347,6 +3641,890 @@ async function deleteGeneratedFlyer(eventId) {
       }
     }
   );
+}
+
+// ======= ADMIN MESSAGES =======
+async function loadAdminMessages() {
+  try {
+    cachedAdminMessages = await api('/messages?view=admin');
+  } catch (e) {
+    console.warn('Failed to load admin messages:', e.message);
+    cachedAdminMessages = [];
+  }
+}
+
+async function renderAdminMessages() {
+  const listContainer = document.getElementById('adminMessagesList');
+  const threadContainer = document.getElementById('adminMessagesThread');
+
+  if (adminViewingThread !== null) {
+    listContainer.style.display = 'none';
+    threadContainer.style.display = 'block';
+    await renderAdminThread(adminViewingThread);
+    return;
+  }
+
+  listContainer.style.display = 'block';
+  threadContainer.style.display = 'none';
+
+  await loadAdminMessages();
+  let topics = cachedAdminMessages;
+  if (!showAdminArchivedMessages) {
+    topics = topics.filter(m => !m.archived);
+  }
+
+  listContainer.innerHTML = topics.map(m => {
+    const tag = (m.message_type === 'direct')
+      ? `<span class="msg-tag msg-tag-direct">Direct: ${escHtml(m.target_user_name || 'Unknown')}</span>`
+      : `<span class="msg-tag msg-tag-org">Org: ${escHtml(m.org_name || 'Unknown')}</span>`;
+    return `
+      <div class="msg-list-item${m.has_unread ? ' msg-unread' : ''}${m.archived ? ' archived-row' : ''}" onclick="viewAdminThread(${m.id})">
+        ${m.has_unread ? '<span class="new-indicator">New</span>' : ''}
+        ${m.archived ? '<span class="event-list-status status-archived">Archived</span>' : ''}
+        ${tag}
+        <div class="msg-topic">${escHtml(m.topic)}</div>
+        <div class="msg-meta">
+          <div>${formatTimestamp(m.created_at)}</div>
+        </div>
+        ${m.archived
+          ? `<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation(); unarchiveAdminTopic(${m.id})" title="Unarchive">Unarchive</button>`
+          : `<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation(); archiveAdminTopic(${m.id})" title="Archive">Archive</button>`
+        }
+      </div>
+    `;
+  }).join('');
+
+  if (topics.length === 0) {
+    listContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#x1F4AC;</div><h3>No admin messages</h3><p>All organization and direct messages will appear here.</p></div>';
+  }
+
+  document.getElementById('adminMsgArchiveToggle').textContent = showAdminArchivedMessages ? 'Hide Archived' : 'Show Archived';
+}
+
+async function viewAdminThread(id) {
+  adminViewingThread = id;
+  await renderAdminMessages();
+  cachedAdminMessages = [];
+  updateAdminMessagesBadge();
+}
+
+async function renderAdminThread(id) {
+  let thread;
+  try {
+    thread = await api('/messages/' + id);
+  } catch (e) {
+    thread = cachedAdminMessages.find(m => m.id === id);
+  }
+  if (!thread) return;
+
+  const replies = thread.replies || [];
+  const label = thread.message_type === 'direct'
+    ? (thread.target_user_name || 'Direct Message')
+    : (thread.org_name || 'Unknown');
+
+  let readReceiptsHtml = '';
+  if (thread.read_receipts && thread.read_receipts.length > 0) {
+    const readCount = thread.read_receipts.filter(r => r.has_read).length;
+    const totalCount = thread.read_receipts.length;
+    readReceiptsHtml = `
+      <div class="read-receipts">
+        <div class="read-receipts-header">Read by ${readCount} of ${totalCount} members</div>
+        ${thread.read_receipts.map(r => `
+          <div class="read-receipt-item ${r.has_read ? 'read' : 'unread'}">
+            ${r.has_read ? '&#x2713;' : '&#x25CB;'} ${escHtml(r.display_name)} (${escHtml(r.email)})
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  const threadContainer = document.getElementById('adminMessagesThread');
+  threadContainer.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <button class="btn btn-ghost btn-sm" onclick="adminViewingThread=null; renderAdminMessages();">&larr; Back to Admin Messages</button>
+      <h3 style="font-size: 18px; font-weight: 700; margin-top: 12px;">${escHtml(thread.topic)}</h3>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">
+        ${thread.message_type === 'direct'
+          ? `<span class="msg-tag msg-tag-direct">Direct: ${escHtml(label)}</span>`
+          : `<span class="msg-tag msg-tag-org">Org: ${escHtml(label)}</span>`
+        }
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <textarea class="form-textarea" id="adminReplyText" rows="2" placeholder="Type your reply..." style="min-height:60px;flex:1;"></textarea>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="btn btn-primary btn-sm" onclick="sendAdminReply(${id})">Send</button>
+        <button class="btn btn-ghost btn-sm" onclick="adminViewingThread=null; renderAdminMessages();">Cancel</button>
+      </div>
+    </div>
+    ${readReceiptsHtml}
+    <div>
+      ${replies.slice().reverse().map(msg => {
+        let senderLabel = '';
+        if (msg.from_type === 'admin') {
+          senderLabel = 'Site Admin';
+        } else {
+          senderLabel = escHtml(thread.org_name || 'Org');
+        }
+        if (msg.user_email) {
+          senderLabel += ` (${escHtml(msg.user_email)})`;
+        }
+        const timestamp = formatTimestamp(msg.created_at);
+        return `
+          <div class="msg-bubble ${msg.from_type === 'org' ? 'from-org' : 'from-admin'}">
+            ${escHtml(msg.text)}
+            <div class="msg-bubble-meta">${senderLabel} · ${timestamp}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function sendAdminReply(messageId) {
+  const text = document.getElementById('adminReplyText').value.trim();
+  if (!text) return;
+
+  try {
+    await api('/messages/' + messageId, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    showToast('Reply sent!');
+    await renderAdminThread(messageId);
+    cachedAdminMessages = [];
+    updateAdminMessagesBadge();
+  } catch (e) {
+    showToast('Error sending reply');
+  }
+}
+
+function toggleAdminArchivedMessages() {
+  showAdminArchivedMessages = !showAdminArchivedMessages;
+  renderAdminMessages();
+}
+
+function archiveAdminTopic(id) {
+  showConfirm(
+    'Archive Topic?',
+    `This will hide the topic from the admin message list.`,
+    'Archive Topic',
+    async () => {
+      try {
+        await api('/messages/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({ archived: true }),
+        });
+        showToast('Topic archived');
+        cachedAdminMessages = [];
+        renderAdminMessages();
+      } catch (e) {
+        showToast('Error archiving topic');
+      }
+    }
+  );
+}
+
+async function unarchiveAdminTopic(id) {
+  try {
+    await api('/messages/' + id, {
+      method: 'PUT',
+      body: JSON.stringify({ archived: false }),
+    });
+    showToast('Topic restored');
+    cachedAdminMessages = [];
+    renderAdminMessages();
+  } catch (e) {
+    showToast('Error restoring topic');
+  }
+}
+
+// ======= ADMIN NEW MESSAGE COMPOSE =======
+async function openAdminNewMessageModal() {
+  adminMsgRecipientType = 'org';
+  document.getElementById('adminNewMsgTopic').value = '';
+  document.getElementById('adminNewMsgText').value = '';
+  document.getElementById('adminMsgUserId').value = '';
+  document.getElementById('adminMsgUserSearch').value = '';
+  document.getElementById('adminMsgUserDropdown').classList.remove('open');
+
+  // Populate org dropdown
+  if (cachedOrgs.length === 0) await loadOrgs();
+  const orgSelect = document.getElementById('adminMsgOrgSelect');
+  orgSelect.innerHTML = '<option value="">-- Select Organization --</option>' +
+    cachedOrgs.map(o => `<option value="${o.id}">${escHtml(o.name)}</option>`).join('');
+
+  setAdminMsgRecipientType('org');
+  openModal('adminNewMessageModal');
+}
+
+function setAdminMsgRecipientType(type) {
+  adminMsgRecipientType = type;
+  const orgBtn = document.getElementById('adminMsgToOrg');
+  const userBtn = document.getElementById('adminMsgToUser');
+  const orgSelect = document.getElementById('adminMsgOrgSelect');
+  const userWrap = document.getElementById('adminMsgUserSearchWrap');
+
+  orgBtn.className = type === 'org' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+  userBtn.className = type === 'user' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+  orgSelect.style.display = type === 'org' ? '' : 'none';
+  userWrap.style.display = type === 'user' ? '' : 'none';
+}
+
+async function filterAdminMsgUsers() {
+  const query = document.getElementById('adminMsgUserSearch').value.trim().toLowerCase();
+  const dropdown = document.getElementById('adminMsgUserDropdown');
+
+  if (query.length < 2) {
+    dropdown.classList.remove('open');
+    return;
+  }
+
+  if (cachedUsers.length === 0) {
+    try { cachedUsers = await api('/users'); } catch (e) { cachedUsers = []; }
+  }
+
+  const filtered = cachedUsers.filter(u =>
+    (u.display_name && u.display_name.toLowerCase().includes(query)) ||
+    (u.email && u.email.toLowerCase().includes(query))
+  ).slice(0, 10);
+
+  if (filtered.length === 0) {
+    dropdown.innerHTML = '<div class="autocomplete-item" style="color:var(--text-dim);">No users found</div>';
+  } else {
+    dropdown.innerHTML = filtered.map(u => {
+      const safeName = escHtml(u.display_name).replace(/'/g, '&#39;');
+      return `
+        <div class="autocomplete-item" onclick="selectAdminMsgUser(${u.id}, '${safeName}')">
+          ${escHtml(u.display_name)}
+          <div class="autocomplete-email">${escHtml(u.email)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  dropdown.classList.add('open');
+}
+
+function selectAdminMsgUser(userId, name) {
+  document.getElementById('adminMsgUserId').value = userId;
+  document.getElementById('adminMsgUserSearch').value = name;
+  document.getElementById('adminMsgUserDropdown').classList.remove('open');
+}
+
+async function submitAdminNewMessage() {
+  const topic = document.getElementById('adminNewMsgTopic').value.trim();
+  const text = document.getElementById('adminNewMsgText').value.trim();
+  if (!topic || !text) {
+    showToast('Please fill in topic and message');
+    return;
+  }
+
+  const payload = { topic, text };
+
+  if (adminMsgRecipientType === 'org') {
+    const orgId = document.getElementById('adminMsgOrgSelect').value;
+    if (!orgId) {
+      showToast('Please select an organization');
+      return;
+    }
+    payload.org_id = parseInt(orgId);
+    payload.message_type = 'org';
+  } else {
+    const userId = document.getElementById('adminMsgUserId').value;
+    if (!userId) {
+      showToast('Please select a user');
+      return;
+    }
+    payload.user_id = parseInt(userId);
+    payload.message_type = 'direct';
+  }
+
+  try {
+    await api('/messages', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    closeModal('adminNewMessageModal');
+    showToast('Message sent!');
+    cachedAdminMessages = [];
+    cachedMessages = [];
+    if (currentSection === 'adminMessages') renderAdminMessages();
+    updateAdminMessagesBadge();
+    updateMessagesBadge();
+  } catch (e) {
+    showToast('Error sending message');
+  }
+}
+
+// ======= ADMIN MESSAGES BADGE =======
+async function updateAdminMessagesBadge() {
+  await loadAdminMessages();
+  const count = cachedAdminMessages.filter(m => !m.archived && m.has_unread).length;
+  const badge = document.getElementById('adminMsgBadge');
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+}
+
+// ======= ORGANIZER SEND AS DROPDOWN =======
+async function populateSendAsDropdown() {
+  const group = document.getElementById('sendAsGroup');
+  const select = document.getElementById('msgSendAs');
+
+  // Only show Send As for organizer (not admin using "Message Org" flow)
+  if (DemoSession.role !== 'organizer' && DemoSession.role !== 'admin') {
+    group.style.display = 'none';
+    return;
+  }
+  if (pendingMessageOrgId) {
+    group.style.display = 'none';
+    return;
+  }
+
+  try {
+    const myOrgs = await api('/users/my-orgs');
+    const options = myOrgs.map(o => `<option value="${o.id}">${escHtml(o.name)}</option>`).join('');
+    select.innerHTML = options + '<option value="personal">Personal</option>';
+    group.style.display = '';
+  } catch (e) {
+    // Fallback: use primary org
+    if (DemoSession.orgId && DemoSession.orgName) {
+      select.innerHTML = `<option value="${DemoSession.orgId}">${escHtml(DemoSession.orgName)}</option><option value="personal">Personal</option>`;
+      group.style.display = '';
+    } else {
+      group.style.display = 'none';
+    }
+  }
+}
+
+// ======= ADMIN DRAWER =======
+function toggleAdminDrawer() {
+  document.getElementById('adminDrawer').classList.toggle('open');
+  document.getElementById('adminDrawerOverlay').classList.toggle('open');
+}
+
+function closeAdminDrawer() {
+  document.getElementById('adminDrawer').classList.remove('open');
+  document.getElementById('adminDrawerOverlay').classList.remove('open');
+}
+
+function navigateFromDrawer(section) {
+  closeAdminDrawer();
+  showSection(section);
+}
+
+// ======= SPONSORING ORG DROPDOWN =======
+async function populateSponsorOrg(preselectedOrgId) {
+  const select = document.getElementById('sponsorOrg');
+  if (!select) return;
+
+  select.innerHTML = '';
+
+  // Fetch user's org memberships
+  let myOrgs = [];
+  try {
+    myOrgs = await api('/users/my-orgs');
+  } catch (e) {
+    // fallback: use DemoSession org
+    if (DemoSession.orgId && DemoSession.orgName) {
+      myOrgs = [{ id: DemoSession.orgId, name: DemoSession.orgName }];
+    }
+  }
+
+  const isAdmin = DemoSession.role === 'admin';
+  const perm = AppConfig.eventOrganizerPermission;
+
+  // For admin: add admin persona option
+  if (isAdmin) {
+    const opt = document.createElement('option');
+    opt.value = 'admin_persona';
+    opt.textContent = AppConfig.siteName + ' Admin';
+    select.appendChild(opt);
+  }
+
+  // Add user's orgs
+  myOrgs.forEach(org => {
+    const opt = document.createElement('option');
+    opt.value = org.id;
+    opt.textContent = org.name;
+    select.appendChild(opt);
+  });
+
+  // Add "Other" option based on permission level
+  const showOther = isAdmin || perm === 'approved_list' || perm === 'any_org';
+  if (showOther) {
+    const opt = document.createElement('option');
+    opt.value = 'other';
+    opt.textContent = '— Other —';
+    select.appendChild(opt);
+  }
+
+  // Pre-select
+  if (preselectedOrgId !== undefined && preselectedOrgId !== null) {
+    const matchOption = Array.from(select.options).find(o => o.value == preselectedOrgId);
+    if (matchOption) {
+      select.value = preselectedOrgId;
+    } else if (showOther) {
+      select.value = 'other';
+      // Pre-populate the all-orgs dropdown with this org
+      await onSponsorOrgChange();
+      const allOrgsSelect = document.getElementById('sponsorOrgAllOrgs');
+      if (allOrgsSelect) {
+        const allMatch = Array.from(allOrgsSelect.options).find(o => o.value == preselectedOrgId);
+        if (allMatch) allOrgsSelect.value = preselectedOrgId;
+      }
+      return;
+    }
+  } else if (!isAdmin && myOrgs.length > 0) {
+    select.value = myOrgs[0].id;
+  }
+
+  // Hide the "other" group initially
+  const otherGroup = document.getElementById('sponsorOrgOtherGroup');
+  if (otherGroup) otherGroup.style.display = 'none';
+}
+
+async function onSponsorOrgChange() {
+  const select = document.getElementById('sponsorOrg');
+  const otherGroup = document.getElementById('sponsorOrgOtherGroup');
+  if (!select || !otherGroup) return;
+
+  if (select.value === 'other') {
+    otherGroup.style.display = 'block';
+
+    // Populate all-orgs dropdown
+    if (cachedOrgs.length === 0) await loadOrgs();
+    const allOrgsSelect = document.getElementById('sponsorOrgAllOrgs');
+    if (allOrgsSelect && allOrgsSelect.options.length <= 1) {
+      cachedOrgs.forEach(org => {
+        const opt = document.createElement('option');
+        opt.value = org.id;
+        opt.textContent = org.name;
+        allOrgsSelect.appendChild(opt);
+      });
+    }
+
+    // Show/hide custom text input based on permission level
+    const customInput = document.getElementById('sponsorOrgCustom');
+    const isAdmin = DemoSession.role === 'admin';
+    const perm = AppConfig.eventOrganizerPermission;
+    if (customInput) {
+      customInput.style.display = (perm === 'any_org' || isAdmin) ? 'block' : 'none';
+    }
+  } else {
+    otherGroup.style.display = 'none';
+  }
+}
+
+function onSponsorOrgAllOrgsChange() {
+  const allOrgsSelect = document.getElementById('sponsorOrgAllOrgs');
+  const customInput = document.getElementById('sponsorOrgCustom');
+  if (allOrgsSelect && allOrgsSelect.value && customInput) {
+    customInput.value = '';
+  }
+}
+
+function getSelectedOrgId() {
+  const select = document.getElementById('sponsorOrg');
+  if (!select) return null;
+
+  const val = select.value;
+  if (val === 'admin_persona') return null;
+  if (val === 'other') {
+    const allOrgsSelect = document.getElementById('sponsorOrgAllOrgs');
+    if (allOrgsSelect && allOrgsSelect.value) return parseInt(allOrgsSelect.value);
+    // Custom text — no org_id
+    return null;
+  }
+  if (val && !isNaN(val)) return parseInt(val);
+  return null;
+}
+
+// ======= EVENT SETTINGS =======
+function renderEventSettings() {
+  const perm = AppConfig.eventOrganizerPermission || 'own_org_only';
+  const radios = document.querySelectorAll('input[name="orgPerm"]');
+  radios.forEach(r => {
+    r.checked = r.value === perm;
+  });
+}
+
+async function saveEventSettings() {
+  const selected = document.querySelector('input[name="orgPerm"]:checked');
+  if (!selected) return;
+
+  try {
+    await api('/config', {
+      method: 'PUT',
+      body: JSON.stringify({ event_organizer_permission: selected.value }),
+    });
+    AppConfig.eventOrganizerPermission = selected.value;
+    showToast('Event settings saved!');
+  } catch (e) {
+    showToast('Error saving settings');
+  }
+}
+
+// ======= HOMEPAGE SETTINGS =======
+function renderHomepageSettings() {
+  document.getElementById('hpHeroLine1').value = AppConfig.heroLine1;
+  document.getElementById('hpHeroLine2').value = AppConfig.heroLine2;
+  document.getElementById('hpHeroSubtitle').value = AppConfig.heroSubtitle;
+  document.getElementById('hpShowEventCount').checked = AppConfig.showEventCount === 'yes';
+  document.getElementById('hpShowOrgCount').checked = AppConfig.showOrgCount === 'yes';
+  document.getElementById('hpShowMobilizedCount').checked = AppConfig.showMobilizedCount === 'yes';
+  document.getElementById('hpShowGithubLink').checked = AppConfig.showGithubLink === 'yes';
+  document.getElementById('hpPurposeText').value = AppConfig.purposeText;
+  document.getElementById('hpPrivacyPolicy').value = AppConfig.privacyPolicy;
+  document.getElementById('hpTermsOfService').value = AppConfig.termsOfService;
+  document.getElementById('hpCopyrightText').value = AppConfig.copyrightText;
+  initHomepageSettingsTracking();
+}
+
+async function saveHomepageSettings() {
+  const fields = [
+    { key: 'hero_line_1', prop: 'heroLine1', label: 'Hero Line 1', el: 'hpHeroLine1' },
+    { key: 'hero_line_2', prop: 'heroLine2', label: 'Hero Line 2', el: 'hpHeroLine2' },
+    { key: 'hero_subtitle', prop: 'heroSubtitle', label: 'Hero Subtitle', el: 'hpHeroSubtitle' },
+    { key: 'show_event_count', prop: 'showEventCount', label: 'Show Event Count', el: 'hpShowEventCount', checkbox: true },
+    { key: 'show_org_count', prop: 'showOrgCount', label: 'Show Org Count', el: 'hpShowOrgCount', checkbox: true },
+    { key: 'show_people_mobilized', prop: 'showMobilizedCount', label: 'Show People Mobilized', el: 'hpShowMobilizedCount', checkbox: true },
+    { key: 'show_github_link', prop: 'showGithubLink', label: 'Show GitHub Link', el: 'hpShowGithubLink', checkbox: true },
+    { key: 'purpose_text', prop: 'purposeText', label: 'Purpose Text', el: 'hpPurposeText', html: true },
+    { key: 'privacy_policy', prop: 'privacyPolicy', label: 'Privacy Policy', el: 'hpPrivacyPolicy', html: true },
+    { key: 'terms_of_service', prop: 'termsOfService', label: 'Terms of Service', el: 'hpTermsOfService', html: true },
+    { key: 'copyright_text', prop: 'copyrightText', label: 'Copyright Text', el: 'hpCopyrightText' },
+  ];
+
+  const changes = {};
+  const changesList = [];
+
+  for (const f of fields) {
+    const formVal = f.checkbox
+      ? (document.getElementById(f.el).checked ? 'yes' : 'no')
+      : document.getElementById(f.el).value;
+    const oldVal = AppConfig[f.prop];
+    if (formVal !== oldVal) {
+      changes[f.key] = formVal;
+      if (f.html) {
+        changesList.push(`<li><strong>${f.label}:</strong> <em style="color:var(--amber);">(modified)</em></li>`);
+      } else {
+        const oldDisplay = f.checkbox ? oldVal : (oldVal.length > 40 ? oldVal.substring(0, 40) + '...' : oldVal);
+        const newDisplay = f.checkbox ? formVal : (formVal.length > 40 ? formVal.substring(0, 40) + '...' : formVal);
+        changesList.push(`<li><strong>${f.label}:</strong> "${oldDisplay}" → "${newDisplay}"</li>`);
+      }
+    }
+  }
+
+  if (changesList.length === 0) {
+    showToast('No changes to save');
+    return;
+  }
+
+  const msgHtml = `<p style="margin-bottom:8px;">Save these changes?</p><ul style="text-align:left;font-size:13px;line-height:1.6;margin:0;padding-left:18px;">${changesList.join('')}</ul>`;
+
+  document.getElementById('confirmTitle').textContent = 'Update Homepage Settings?';
+  document.getElementById('confirmMessage').innerHTML = msgHtml;
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = 'Save';
+  btn.className = 'btn btn-primary btn-sm';
+  btn.onclick = async () => {
+    closeConfirm();
+    try {
+      await api('/config', {
+        method: 'PUT',
+        body: JSON.stringify(changes),
+      });
+      for (const f of fields) {
+        if (changes[f.key] !== undefined) {
+          AppConfig[f.prop] = changes[f.key];
+        }
+      }
+      applyConfig();
+      showToast('Homepage settings saved!');
+      checkHomepageSettingsChanged();
+    } catch (e) {
+      showToast('Error saving settings');
+    }
+  };
+  document.getElementById('confirmDialog').classList.add('open');
+}
+
+function getHomepageFields() {
+  return [
+    { key: 'hero_line_1', prop: 'heroLine1', el: 'hpHeroLine1', section: 'hero-heading' },
+    { key: 'hero_line_2', prop: 'heroLine2', el: 'hpHeroLine2', section: 'hero-heading' },
+    { key: 'hero_subtitle', prop: 'heroSubtitle', el: 'hpHeroSubtitle', section: 'hero-heading' },
+    { key: 'show_event_count', prop: 'showEventCount', el: 'hpShowEventCount', checkbox: true, section: 'hero-stats' },
+    { key: 'show_org_count', prop: 'showOrgCount', el: 'hpShowOrgCount', checkbox: true, section: 'hero-stats' },
+    { key: 'show_people_mobilized', prop: 'showMobilizedCount', el: 'hpShowMobilizedCount', checkbox: true, section: 'hero-stats' },
+    { key: 'show_github_link', prop: 'showGithubLink', el: 'hpShowGithubLink', checkbox: true, section: 'footer-links' },
+    { key: 'purpose_text', prop: 'purposeText', el: 'hpPurposeText', section: 'nav-purpose' },
+    { key: 'privacy_policy', prop: 'privacyPolicy', el: 'hpPrivacyPolicy', section: 'footer-privacy' },
+    { key: 'terms_of_service', prop: 'termsOfService', el: 'hpTermsOfService', section: 'footer-terms' },
+    { key: 'copyright_text', prop: 'copyrightText', el: 'hpCopyrightText', section: 'footer-copyright' },
+  ];
+}
+
+function checkHomepageSettingsChanged() {
+  const fields = getHomepageFields();
+  let hasChanges = false;
+  for (const f of fields) {
+    const formVal = f.checkbox
+      ? (document.getElementById(f.el).checked ? 'yes' : 'no')
+      : document.getElementById(f.el).value;
+    if (formVal !== AppConfig[f.prop]) {
+      hasChanges = true;
+      break;
+    }
+  }
+  const btn = document.getElementById('hpPreviewBtn');
+  if (btn) btn.disabled = !hasChanges;
+}
+
+function initHomepageSettingsTracking() {
+  const fields = getHomepageFields();
+  const ids = fields.map(f => f.el);
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', checkHomepageSettingsChanged);
+    el.addEventListener('change', checkHomepageSettingsChanged);
+  }
+  checkHomepageSettingsChanged();
+}
+
+function previewHomepageChanges() {
+  const fields = getHomepageFields();
+  const changedSections = new Set();
+  const formValues = {};
+
+  for (const f of fields) {
+    const formVal = f.checkbox
+      ? (document.getElementById(f.el).checked ? 'yes' : 'no')
+      : document.getElementById(f.el).value;
+    formValues[f.prop] = formVal;
+    if (formVal !== AppConfig[f.prop]) {
+      changedSections.add(f.section);
+    }
+  }
+
+  // Map sections to modal triggers
+  if (changedSections.has('nav-purpose')) changedSections.add('modal-purpose');
+  if (changedSections.has('footer-privacy')) changedSections.add('modal-privacy');
+  if (changedSections.has('footer-terms')) changedSections.add('modal-terms');
+
+  const heroLine1 = formValues.heroLine1 || '';
+  const heroLine2 = formValues.heroLine2 || '';
+  const heroSubtitle = formValues.heroSubtitle || '';
+  const showEventCount = formValues.showEventCount === 'yes';
+  const showOrgCount = formValues.showOrgCount === 'yes';
+  const showMobilized = formValues.showMobilizedCount === 'yes';
+  const showGithub = formValues.showGithubLink === 'yes';
+  const copyrightText = formValues.copyrightText || '';
+  const purposeText = formValues.purposeText || '';
+  const privacyPolicy = formValues.privacyPolicy || '';
+  const termsOfService = formValues.termsOfService || '';
+
+  const siteRegion = AppConfig.siteRegion || '';
+  const siteName = AppConfig.siteName || 'Resist Events';
+  const logoHtml = siteRegion
+    ? `<span class="highlight">${siteRegion}</span> Resist Events`
+    : siteName;
+
+  function sectionClass(name) {
+    return changedSections.has(name) ? 'preview-section preview-active' : 'preview-section preview-blurred';
+  }
+
+  function arrow(name) {
+    if (!changedSections.has(name)) return '';
+    return '<span class="preview-arrow">&darr;</span>';
+  }
+
+  function arrowLeft(name) {
+    if (!changedSections.has(name)) return '';
+    return '<span class="preview-arrow preview-arrow-left">&rarr;</span>';
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Homepage Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700;800;900&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  .preview-section { transition: filter 0.3s ease; position: relative; }
+  .preview-blurred { filter: blur(3px); pointer-events: none; user-select: none; }
+  .preview-active { filter: none; pointer-events: auto; }
+  .preview-static-blur { filter: blur(3px); pointer-events: none; user-select: none; }
+  .preview-arrow {
+    display: inline-block; color: var(--amber, #f5a623); font-size: 22px;
+    animation: preview-bounce 1s ease-in-out infinite;
+    margin: 0 6px; vertical-align: middle; line-height: 1;
+  }
+  .preview-arrow-left { font-size: 20px; }
+  @keyframes preview-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+  .preview-notice {
+    position: fixed; top: 16px; right: 16px; z-index: 9999;
+    background: var(--card-bg, #1a1a2e); color: var(--text, #e0e0e0);
+    border: 1px solid var(--amber, #f5a623); border-radius: 8px;
+    padding: 14px 18px; max-width: 340px; font-size: 13px; line-height: 1.5;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .preview-notice strong { color: var(--amber, #f5a623); }
+  .preview-notice-close {
+    position: absolute; top: 6px; right: 10px; background: none; border: none;
+    color: var(--text-muted, #999); cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .preview-notice-close:hover { color: var(--text, #e0e0e0); }
+  .modal-overlay { display: none; }
+  .modal-overlay.open { display: flex; }
+</style>
+</head>
+<body>
+<!-- Floating notice -->
+<div class="preview-notice" id="previewNotice">
+  <button class="preview-notice-close" onclick="document.getElementById('previewNotice').style.display='none'">&times;</button>
+  <strong>Preview Mode</strong><br>
+  This is a static preview. Save changes on the previous page for them to take effect.
+</div>
+
+<!-- Header (always blurred — not configurable) -->
+<header class="site-header preview-static-blur">
+  <div class="header-inner">
+    <a href="#" class="site-logo" onclick="return false;">
+      <div class="logo-icon">R</div>
+      <span class="logo-text">${logoHtml}</span>
+    </a>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="nav-bar">
+  <div class="nav-inner" style="display:flex;align-items:center;">
+    <span class="preview-static-blur"><button class="nav-btn active">Home</button></span>
+    <span class="${sectionClass('nav-purpose')}" style="display:inline-flex;align-items:center;">
+      ${arrowLeft('nav-purpose')}
+      <button class="nav-btn" ${changedSections.has('modal-purpose') ? 'onclick="document.getElementById(\'pvPurposeModal\').classList.add(\'open\')"' : ''}>Our Purpose</button>
+    </span>
+    <span class="preview-static-blur"><button class="nav-btn">Today's Events</button></span>
+    <span class="preview-static-blur"><button class="nav-btn">Full Calendar</button></span>
+    <span class="preview-static-blur"><button class="nav-btn">Organizations</button></span>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main-content">
+  <div class="section-panel active">
+    <div class="hero-section fade-in">
+      <!-- Hero heading -->
+      <div class="${sectionClass('hero-heading')}">
+        ${arrow('hero-heading')}
+        <h1>${heroLine1}<br><span class="accent">${heroLine2}</span></h1>
+        <p class="hero-subtitle">${heroSubtitle}</p>
+      </div>
+      <!-- Hero stats (grouped — unblur all if any stat toggle changed) -->
+      <div class="${sectionClass('hero-stats')}">
+        ${arrow('hero-stats')}
+        <div class="hero-stats">
+          ${showEventCount ? '<div class="hero-stat"><div class="hero-stat-num">12</div><div class="hero-stat-label">Upcoming Events</div></div>' : ''}
+          ${showOrgCount ? '<div class="hero-stat"><div class="hero-stat-num">8</div><div class="hero-stat-label">Organizations</div></div>' : ''}
+          ${showMobilized ? '<div class="hero-stat"><div class="hero-stat-num">--</div><div class="hero-stat-label">People Mobilized</div></div>' : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming events section (always blurred — not configurable) -->
+    <div class="preview-static-blur">
+      <h2 class="section-title" style="margin-top: 48px;">Upcoming Events</h2>
+      <p class="section-subtitle">Next few events across all organizations</p>
+      <div class="events-grid">
+        <div class="event-card" style="min-height:160px;">
+          <div style="padding:20px;color:var(--text-dim);font-style:italic;text-align:center;">Event placeholder</div>
+        </div>
+        <div class="event-card" style="min-height:160px;">
+          <div style="padding:20px;color:var(--text-dim);font-style:italic;text-align:center;">Event placeholder</div>
+        </div>
+        <div class="event-card" style="min-height:160px;">
+          <div style="padding:20px;color:var(--text-dim);font-style:italic;text-align:center;">Event placeholder</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="${sectionClass('footer-copyright')}">
+      ${arrow('footer-copyright')}
+      <p>&copy; ${copyrightText}</p>
+    </div>
+    <div class="footer-links" style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+      <span class="${sectionClass('footer-privacy')}" style="display:inline-flex;align-items:center;">
+        ${arrowLeft('footer-privacy')}
+        <a href="#" ${changedSections.has('modal-privacy') ? 'onclick="document.getElementById(\'pvPrivacyModal\').classList.add(\'open\'); return false;"' : 'onclick="return false;"'}>Privacy Policy</a>
+      </span>
+      <span class="footer-sep">|</span>
+      <span class="${sectionClass('footer-terms')}" style="display:inline-flex;align-items:center;">
+        ${arrowLeft('footer-terms')}
+        <a href="#" ${changedSections.has('modal-terms') ? 'onclick="document.getElementById(\'pvTermsModal\').classList.add(\'open\'); return false;"' : 'onclick="return false;"'}>Terms of Service</a>
+      </span>
+      <span class="${sectionClass('footer-links')}" style="display:inline-flex;align-items:center;">
+        ${showGithub ? '<span class="footer-sep">|</span>' + arrowLeft('footer-links') + '<a href="#" onclick="return false;">GitHub</a>' : ''}
+      </span>
+    </div>
+  </div>
+</footer>
+
+<!-- Purpose Modal -->
+<div class="modal-overlay" id="pvPurposeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Our Purpose</h2>
+      <button class="modal-close" onclick="document.getElementById('pvPurposeModal').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body">${purposeText}</div>
+  </div>
+</div>
+
+<!-- Privacy Modal -->
+<div class="modal-overlay" id="pvPrivacyModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Privacy Policy</h2>
+      <button class="modal-close" onclick="document.getElementById('pvPrivacyModal').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">${privacyPolicy}</div>
+  </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal-overlay" id="pvTermsModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Terms of Service</h2>
+      <button class="modal-close" onclick="document.getElementById('pvTermsModal').classList.remove('open')">&times;</button>
+    </div>
+    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">${termsOfService}</div>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+  const previewWindow = window.open('', '_blank');
+  if (previewWindow) {
+    previewWindow.document.write(html);
+    previewWindow.document.close();
+  }
 }
 
 // ======= APP READY CALLBACK =======

@@ -12,7 +12,7 @@ export async function onRequestGet(context) {
         CASE WHEN e.org_id = (SELECT org_id FROM users WHERE id = ?) THEN 1 ELSE 0 END as org_is_host,
         CASE WHEN ef.event_id IS NOT NULL THEN '/api/events/' || e.id || '/flyer/image.png' ELSE NULL END as generated_flyer_url
       FROM events e
-      JOIN organizations o ON e.org_id = o.id
+      LEFT JOIN organizations o ON e.org_id = o.id
       LEFT JOIN event_flyers ef ON ef.event_id = e.id
       WHERE e.id = ?
     `).bind(context.data.demoUserId || 0, id).first();
@@ -47,20 +47,49 @@ export async function onRequestPut(context) {
     const body = await context.request.json();
     const userId = context.data.demoUserId;
 
-    // Auto-approve if organizer submits for review and belongs to the sponsoring org
-    if (body.status === 'review' && role === 'organizer' && userId) {
-      const user = await db.prepare('SELECT org_id FROM users WHERE id = ?').bind(userId).first();
-      const event = await db.prepare('SELECT org_id FROM events WHERE id = ?').bind(id).first();
-      if (user && event && user.org_id === event.org_id) {
-        body.status = 'published';
+    // Read event_organizer_permission config
+    let eventOrgPerm = 'own_org_only';
+    try {
+      const permRow = await db.prepare("SELECT value FROM site_config WHERE key = 'event_organizer_permission'").first();
+      if (permRow) eventOrgPerm = permRow.value;
+    } catch (e) { /* use default */ }
+
+    // Handle org_id update
+    if (body.org_id !== undefined) {
+      const userOrgId = userId ? (await db.prepare('SELECT org_id FROM users WHERE id = ?').bind(userId).first())?.org_id : null;
+      if (role !== 'admin' && body.org_id && body.org_id !== userOrgId && eventOrgPerm === 'own_org_only') {
+        return Response.json({ error: 'You can only create events for your own organization' }, { status: 403 });
       }
+    }
+
+    // Auto-publish logic
+    if (body.status === 'review') {
+      if (role === 'admin') {
+        // Admin events always auto-publish
+        body.status = 'published';
+      } else if (eventOrgPerm === 'any_org') {
+        // Any org mode: organizer events always auto-publish
+        body.status = 'published';
+      } else if (eventOrgPerm === 'approved_list' && role === 'organizer' && userId) {
+        const user = await db.prepare('SELECT org_id FROM users WHERE id = ?').bind(userId).first();
+        const targetOrgId = body.org_id !== undefined ? body.org_id : (await db.prepare('SELECT org_id FROM events WHERE id = ?').bind(id).first())?.org_id;
+        if (user && targetOrgId) {
+          const org = await db.prepare('SELECT can_self_publish, can_cross_publish FROM organizations WHERE id = ?').bind(targetOrgId).first();
+          if (user.org_id === targetOrgId && org && org.can_self_publish) {
+            body.status = 'published';
+          } else if (user.org_id !== targetOrgId && org && org.can_cross_publish) {
+            body.status = 'published';
+          }
+        }
+      }
+      // own_org_only: organizers always go to 'review' (no auto-publish)
     }
 
     // Build dynamic update
     const fields = [];
     const values = [];
 
-    const allowed = ['title', 'date', 'start_time', 'end_time', 'address', 'description', 'parking', 'flyer_url', 'website_url', 'reg_link', 'notes', 'status', 'event_type'];
+    const allowed = ['title', 'org_id', 'date', 'start_time', 'end_time', 'address', 'description', 'parking', 'flyer_url', 'website_url', 'reg_link', 'notes', 'status', 'event_type'];
     for (const key of allowed) {
       if (body[key] !== undefined) {
         fields.push(`${key} = ?`);

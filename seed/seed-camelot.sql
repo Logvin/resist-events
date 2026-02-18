@@ -6,6 +6,43 @@ INSERT INTO site_config (key, value) VALUES ('site_region', 'Camelot');
 INSERT INTO site_config (key, value) VALUES ('domain', 'cityresist.events');
 INSERT INTO site_config (key, value) VALUES ('archive_retention_months', '12');
 INSERT INTO site_config (key, value) VALUES ('flyer_auto_delete_days', '30');
+INSERT INTO site_config (key, value) VALUES ('event_organizer_permission', 'own_org_only');
+INSERT INTO site_config (key, value) VALUES ('hero_line_1', 'Together We');
+INSERT INTO site_config (key, value) VALUES ('hero_line_2', 'Show Up.');
+INSERT INTO site_config (key, value) VALUES ('hero_subtitle', 'One calendar for every rally, march, meeting, and action. Find your people. Make your voice heard.');
+INSERT INTO site_config (key, value) VALUES ('show_event_count', 'yes');
+INSERT INTO site_config (key, value) VALUES ('show_org_count', 'yes');
+INSERT INTO site_config (key, value) VALUES ('privacy_policy', '
+<p><strong>Last updated:</strong> February 2026</p>
+<p style="margin-top:12px;">Resist Events is an open-source community event calendar. We are committed to transparency about how this application works.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Information We Collect</h4>
+<p>This demo instance uses browser cookies solely for demo session management (role selection). No personal data is collected, stored, or shared beyond what you voluntarily enter into the application (event details, organization info, messages).</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Data Storage</h4>
+<p>All data is stored in a Cloudflare D1 database associated with this deployment. In demo mode, data may be periodically reset. Archived events and messages are automatically deleted after the configured retention period.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Third-Party Services</h4>
+<p>This application uses Cloudflare Pages for hosting and Cloudflare D1 for data storage. No third-party analytics, tracking, or advertising services are used.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
+<p>The source code for this application is publicly available. You can review exactly what data is collected and how it is handled by inspecting the codebase.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Contact</h4>
+<p>If you have questions about this privacy policy, please use the Messages feature to contact the site administrators.</p>
+');
+INSERT INTO site_config (key, value) VALUES ('terms_of_service', '
+<p><strong>Last updated:</strong> February 2026</p>
+<p style="margin-top:12px;">By using Resist Events, you agree to the following terms.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Purpose</h4>
+<p>Resist Events is a community-driven event calendar designed to help local organizations coordinate civic actions, rallies, meetings, and community events. The platform is provided as-is for community benefit.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">User Conduct</h4>
+<p>Users agree to submit only truthful event information, refrain from posting harmful or misleading content, and respect the community guidelines set by site administrators. Events promoting violence or illegal activity are strictly prohibited.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Content Moderation</h4>
+<p>All submitted events are subject to review and approval by site administrators. Administrators reserve the right to reject, modify, or remove any content that violates these terms or community guidelines.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Disclaimer</h4>
+<p>This platform is provided "as is" without warranty of any kind. The operators are not responsible for the accuracy of event information submitted by organizers, nor for any outcomes resulting from attendance at listed events.</p>
+<h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
+<p>This software is open source. You are free to fork, modify, and deploy your own instance in accordance with the project''s license.</p>
+');
+INSERT INTO site_config (key, value) VALUES ('show_people_mobilized', 'yes');
+INSERT INTO site_config (key, value) VALUES ('show_github_link', 'yes');
+INSERT INTO site_config (key, value) VALUES ('copyright_text', '2026 Camelot Resist Events · Open source and community-driven');
 INSERT INTO site_config (key, value) VALUES ('purpose_text', '
 <p style="margin-bottom: 16px; line-height: 1.7;">
   Listen. Strange women lying in ponds distributing swords is no basis for a system of government. Supreme executive power derives from a mandate from the masses, not from some farcical aquatic ceremony.

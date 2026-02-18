@@ -23,6 +23,8 @@ export async function onRequestPut(context) {
     if (body.qr_url !== undefined) { fields.push('qr_url = ?'); values.push(body.qr_url || null); }
     if (body.city !== undefined) { fields.push('city = ?'); values.push(body.city || null); }
     if (body.mission_statement !== undefined) { fields.push('mission_statement = ?'); values.push(body.mission_statement || null); }
+    if (body.can_self_publish !== undefined) { fields.push('can_self_publish = ?'); values.push(body.can_self_publish ? 1 : 0); }
+    if (body.can_cross_publish !== undefined) { fields.push('can_cross_publish = ?'); values.push(body.can_cross_publish ? 1 : 0); }
 
     if (fields.length === 0) {
       return Response.json({ error: 'No fields to update' }, { status: 400 });

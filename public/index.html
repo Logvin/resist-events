@@ -77,14 +77,10 @@
     <button class="nav-btn" data-section="orgs" onclick="showSection('orgs')">Organizations</button>
     <button class="nav-btn" data-section="sync" onclick="openModal('syncModal')">Sync to Phone</button>
     <div class="nav-divider organizer-only"></div>
-    <button class="nav-btn organizer-btn organizer-only" data-section="newEvent" onclick="showSection('newEvent')">New Event</button>
-    <button class="nav-btn organizer-btn organizer-only" data-section="myEvents" onclick="showSection('myEvents')">My Events</button>
-    <button class="nav-btn organizer-btn organizer-only" data-section="profile" onclick="openOrgProfile()">Org Profile</button>
+    <button class="nav-btn organizer-btn organizer-only" data-section="myEvents" onclick="showSection('myEvents')">My Events <span class="nav-badge" id="myEventsBadge" style="display:none;background:var(--sage);">0</span></button>
     <button class="nav-btn organizer-btn organizer-only" data-section="contact" onclick="showSection('contact')">Messages <span class="nav-badge" id="messagesBadge" style="display:none;background:var(--sage);">0</span></button>
     <div class="nav-divider admin-only"></div>
-    <button class="nav-btn admin-btn admin-only" data-section="reviewQueue" onclick="showSection('reviewQueue')">Review Queue <span class="nav-badge" id="reviewBadge" style="display:none;">0</span></button>
-    <button class="nav-btn admin-btn admin-only" data-section="manageOrgs" onclick="showSection('manageOrgs')">Manage Orgs</button>
-    <button class="nav-btn admin-btn admin-only" data-section="manageUsers" onclick="showSection('manageUsers')">Manage Users</button>
+    <button class="nav-btn admin-btn admin-only" onclick="toggleAdminDrawer()">Admin Settings</button>
   </div>
 </nav>
 
@@ -94,18 +90,18 @@
   <!-- HOME -->
   <div id="section-home" class="section-panel active">
     <div class="hero-section fade-in">
-      <h1>Together We<br><span class="accent">Show Up.</span></h1>
+      <h1 id="heroTitle">Together We<br><span class="accent">Show Up.</span></h1>
       <p class="hero-subtitle" id="heroSubtitle">One calendar for every rally, march, meeting, and action. Find your people. Make your voice heard.</p>
       <div class="hero-stats">
-        <div class="hero-stat">
+        <div class="hero-stat" id="statEventsWrap">
           <div class="hero-stat-num" id="statEvents">--</div>
           <div class="hero-stat-label">Upcoming Events</div>
         </div>
-        <div class="hero-stat">
+        <div class="hero-stat" id="statOrgsWrap">
           <div class="hero-stat-num" id="statOrgs">--</div>
           <div class="hero-stat-label">Organizations</div>
         </div>
-        <div class="hero-stat">
+        <div class="hero-stat" id="statMobilizedWrap">
           <div class="hero-stat-num" id="statMobilized">--</div>
           <div class="hero-stat-label">People Mobilized</div>
         </div>
@@ -239,10 +235,18 @@
           <p class="form-hint">Each occurrence will be created as a separate event with the same details. You can edit individual events after creation.</p>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="sponsorOrgGroup">
           <label class="form-label">Sponsoring Organization</label>
-          <input type="text" class="form-input" id="sponsorOrg" readonly>
-          <p class="form-hint">Defaults to your organization. Events you host will display a verified badge.</p>
+          <select class="form-input" id="sponsorOrg" onchange="onSponsorOrgChange()">
+            <!-- Populated by JS -->
+          </select>
+          <div id="sponsorOrgOtherGroup" style="display:none;margin-top:8px;">
+            <input type="text" class="form-input" id="sponsorOrgCustom" placeholder="Type a custom organization name..." style="margin-bottom:8px;">
+            <select class="form-input" id="sponsorOrgAllOrgs" onchange="onSponsorOrgAllOrgsChange()">
+              <option value="">— Or choose from existing organizations —</option>
+            </select>
+          </div>
+          <p class="form-hint">Choose the organization sponsoring this event. Events from your own org display a verified badge.</p>
         </div>
         <div class="form-group">
           <label class="form-label">Event Description *</label>
@@ -368,6 +372,7 @@
         <p class="section-subtitle">Manage events you've created</p>
       </div>
       <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm organizer-only" onclick="showSection('newEvent')">+ New Event</button>
         <button class="btn btn-secondary btn-sm" id="archiveToggle" onclick="toggleArchivedEvents()">Show Archived</button>
       </div>
     </div>
@@ -397,7 +402,7 @@
   <div id="section-reviewQueue" class="section-panel">
     <div class="section-header">
       <div>
-        <h2 class="section-title">Event Review Queue</h2>
+        <h2 class="section-title">Admin Queue</h2>
         <p class="section-subtitle">Approve or reject submitted events</p>
       </div>
     </div>
@@ -421,6 +426,22 @@
     <div id="adminOrgsList"></div>
   </div>
 
+  <!-- ADMIN MESSAGES -->
+  <div id="section-adminMessages" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Admin Messages</h2>
+        <p class="section-subtitle">All organization and direct messages</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" onclick="openAdminNewMessageModal()">+ New Message</button>
+        <button class="btn btn-secondary btn-sm" id="adminMsgArchiveToggle" onclick="toggleAdminArchivedMessages()">Show Archived</button>
+      </div>
+    </div>
+    <div id="adminMessagesList"></div>
+    <div id="adminMessagesThread" style="display: none;"></div>
+  </div>
+
   <!-- MANAGE USERS (admin) -->
   <div id="section-manageUsers" class="section-panel">
     <div class="section-header">
@@ -438,18 +459,134 @@
     <div id="adminUsersList"></div>
   </div>
 
+  <!-- EVENT SETTINGS (admin) -->
+  <div id="section-eventSettings" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Event Settings</h2>
+        <p class="section-subtitle">Configure event publishing and organizer permissions</p>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Organizer Publishing Permissions</h3>
+      <p class="settings-card-desc">Control which organizations organizers can publish events for</p>
+      <div class="settings-radio-group" id="orgPermRadios">
+        <label class="settings-radio">
+          <input type="radio" name="orgPerm" value="own_org_only" checked>
+          <div>
+            <strong>Own organization only</strong>
+            <p>Organizers can only submit events for their own organization. All events require admin approval.</p>
+          </div>
+        </label>
+        <label class="settings-radio">
+          <input type="radio" name="orgPerm" value="approved_list">
+          <div>
+            <strong>Approved organizations</strong>
+            <p>Organizers with self-publish permission can publish their own events without approval. Cross-publishing requires the target org to allow it.</p>
+          </div>
+        </label>
+        <label class="settings-radio">
+          <input type="radio" name="orgPerm" value="any_org">
+          <div>
+            <strong>Any organization</strong>
+            <p>Organizers can submit events for any organization in the directory. Useful for high-trust communities.</p>
+          </div>
+        </label>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveEventSettings()" style="margin-top:16px;">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- SITE SETTINGS (admin) -->
+  <div id="section-siteSettings" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Site Settings</h2>
+        <p class="section-subtitle">Configure sitewide appearance and content</p>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Sitewide Theme</h3>
+      <p class="settings-card-desc">Customize colors, fonts, and branding across the site.</p>
+      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Flyer Templates</h3>
+      <p class="settings-card-desc">Manage and customize event flyer templates.</p>
+      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Homepage Settings</h3>
+      <p class="settings-card-desc">Configure hero content, footer, and modal content.</p>
+
+      <div style="margin-top:16px;">
+        <div class="form-group">
+          <label class="form-label">Hero Line 1</label>
+          <input type="text" class="form-input" id="hpHeroLine1" placeholder="Together We">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hero Line 2</label>
+          <input type="text" class="form-input" id="hpHeroLine2" placeholder="Show Up.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hero Subtitle</label>
+          <input type="text" class="form-input" id="hpHeroSubtitle" placeholder="One calendar for every rally, march...">
+        </div>
+
+        <div style="display:flex;gap:24px;margin-top:12px;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="hpShowEventCount"> Show event count
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="hpShowOrgCount"> Show Organization count
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="hpShowMobilizedCount"> Show People Mobilized count
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Purpose Text (HTML)</label>
+          <textarea class="form-input" id="hpPurposeText" rows="5" placeholder="HTML content for the Our Purpose modal..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Privacy Policy (HTML)</label>
+          <textarea class="form-input" id="hpPrivacyPolicy" rows="5" placeholder="HTML content for the Privacy Policy modal..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Terms of Service (HTML)</label>
+          <textarea class="form-input" id="hpTermsOfService" rows="5" placeholder="HTML content for the Terms of Service modal..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Copyright Text</label>
+          <input type="text" class="form-input" id="hpCopyrightText" placeholder="2026 Resist Events · Open source and community-driven">
+        </div>
+        <div style="margin-top:4px;margin-bottom:4px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="hpShowGithubLink"> Show GitHub link
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button class="btn btn-secondary btn-sm" id="hpPreviewBtn" onclick="previewHomepageChanges()" disabled>Preview Changes</button>
+        <button class="btn btn-primary btn-sm" onclick="saveHomepageSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ======= FOOTER ======= -->
 <footer class="site-footer">
   <div class="footer-inner">
-    <p>&copy; 2026 Resist Events &middot; Open source and community-driven</p>
+    <p id="copyrightText">&copy; 2026 Resist Events &middot; Open source and community-driven</p>
     <div class="footer-links">
       <a href="#" onclick="openModal('privacyModal'); return false;">Privacy Policy</a>
       <span class="footer-sep">|</span>
       <a href="#" onclick="openModal('termsModal'); return false;">Terms of Service</a>
-      <span class="footer-sep">|</span>
-      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <span class="footer-sep" id="githubSep">|</span>
+      <a href="https://github.com" target="_blank" rel="noopener" id="githubLink">GitHub</a>
     </div>
   </div>
 </footer>
@@ -607,6 +744,10 @@
       <button class="modal-close" onclick="closeModal('newMessageModal')">&#x2715;</button>
     </div>
     <div class="modal-body">
+      <div class="form-group" id="sendAsGroup" style="display:none;">
+        <label class="form-label">Send As</label>
+        <select class="form-input" id="msgSendAs"></select>
+      </div>
       <div class="form-group">
         <label class="form-label">Topic *</label>
         <input type="text" class="form-input" id="newMsgTopic" placeholder="e.g. Question about event approval process">
@@ -619,6 +760,45 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('newMessageModal')">Cancel</button>
       <button class="btn btn-primary" onclick="submitNewMessage()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN NEW MESSAGE MODAL -->
+<div class="modal-overlay" id="adminNewMessageModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>New Admin Message</h2>
+      <button class="modal-close" onclick="closeModal('adminNewMessageModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Send To</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button class="btn btn-sm" id="adminMsgToOrg" onclick="setAdminMsgRecipientType('org')">Organization</button>
+          <button class="btn btn-sm" id="adminMsgToUser" onclick="setAdminMsgRecipientType('user')">User</button>
+        </div>
+        <select class="form-input" id="adminMsgOrgSelect" style="display:none;">
+          <option value="">-- Select Organization --</option>
+        </select>
+        <div id="adminMsgUserSearchWrap" style="display:none;position:relative;">
+          <input type="text" class="form-input" id="adminMsgUserSearch" placeholder="Search by name or email..." oninput="filterAdminMsgUsers()">
+          <div class="autocomplete-dropdown" id="adminMsgUserDropdown"></div>
+          <input type="hidden" id="adminMsgUserId">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Topic *</label>
+        <input type="text" class="form-input" id="adminNewMsgTopic">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message *</label>
+        <textarea class="form-textarea" id="adminNewMsgText" rows="5"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('adminNewMessageModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAdminNewMessage()">Send</button>
     </div>
   </div>
 </div>
@@ -699,6 +879,17 @@
           </div>
         </div>
       </div>
+      <div class="form-group" id="orgEditPublishPerms" style="display:none;">
+        <label class="form-label">Publishing Permissions</label>
+        <label class="form-check">
+          <input type="checkbox" id="orgEditSelfPublish">
+          Allow this org to publish their own events without admin approval
+        </label>
+        <label class="form-check" style="margin-top:6px;">
+          <input type="checkbox" id="orgEditCrossPublish">
+          Allow this org to publish events for other organizations without admin approval
+        </label>
+      </div>
       <div id="orgEditOrganizers" style="display:none;">
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Approved Organizers</label>
@@ -760,19 +951,8 @@
       <h2>Privacy Policy</h2>
       <button class="modal-close" onclick="closeModal('privacyModal')">&#x2715;</button>
     </div>
-    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
-      <p><strong>Last updated:</strong> February 2026</p>
-      <p style="margin-top:12px;">Resist Events is an open-source community event calendar. We are committed to transparency about how this application works.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Information We Collect</h4>
-      <p>This demo instance uses browser cookies solely for demo session management (role selection). No personal data is collected, stored, or shared beyond what you voluntarily enter into the application (event details, organization info, messages).</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Data Storage</h4>
-      <p>All data is stored in a Cloudflare D1 database associated with this deployment. In demo mode, data may be periodically reset. Archived events and messages are automatically deleted after the configured retention period.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Third-Party Services</h4>
-      <p>This application uses Cloudflare Pages for hosting and Cloudflare D1 for data storage. No third-party analytics, tracking, or advertising services are used.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
-      <p>The source code for this application is publicly available. You can review exactly what data is collected and how it is handled by inspecting the codebase.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Contact</h4>
-      <p>If you have questions about this privacy policy, please use the Messages feature to contact the site administrators.</p>
+    <div class="modal-body" id="privacyContent" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
+      <p style="color:var(--text-muted);">Loading...</p>
     </div>
   </div>
 </div>
@@ -784,19 +964,8 @@
       <h2>Terms of Service</h2>
       <button class="modal-close" onclick="closeModal('termsModal')">&#x2715;</button>
     </div>
-    <div class="modal-body" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
-      <p><strong>Last updated:</strong> February 2026</p>
-      <p style="margin-top:12px;">By using Resist Events, you agree to the following terms.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Purpose</h4>
-      <p>Resist Events is a community-driven event calendar designed to help local organizations coordinate civic actions, rallies, meetings, and community events. The platform is provided as-is for community benefit.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">User Conduct</h4>
-      <p>Users agree to submit only truthful event information, refrain from posting harmful or misleading content, and respect the community guidelines set by site administrators. Events promoting violence or illegal activity are strictly prohibited.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Content Moderation</h4>
-      <p>All submitted events are subject to review and approval by site administrators. Administrators reserve the right to reject, modify, or remove any content that violates these terms or community guidelines.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Disclaimer</h4>
-      <p>This platform is provided "as is" without warranty of any kind. The operators are not responsible for the accuracy of event information submitted by organizers, nor for any outcomes resulting from attendance at listed events.</p>
-      <h4 style="margin-top:16px;color:var(--text);font-size:14px;">Open Source</h4>
-      <p>This software is open source. You are free to fork, modify, and deploy your own instance in accordance with the project's license.</p>
+    <div class="modal-body" id="termsContent" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
+      <p style="color:var(--text-muted);">Loading...</p>
     </div>
   </div>
 </div>
@@ -815,6 +984,29 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- ======= ADMIN DRAWER ======= -->
+<div class="drawer-overlay" id="adminDrawerOverlay" onclick="closeAdminDrawer()"></div>
+<div class="admin-drawer" id="adminDrawer">
+  <div class="drawer-header">
+    <h3>Admin Settings</h3>
+    <button class="btn btn-ghost btn-sm" onclick="closeAdminDrawer()">&#x2715;</button>
+  </div>
+  <div class="drawer-body">
+    <button class="drawer-item" onclick="navigateFromDrawer('reviewQueue')">
+      Admin Queue <span class="nav-badge" id="reviewBadge" style="display:none;">0</span>
+    </button>
+    <button class="drawer-item" onclick="navigateFromDrawer('adminMessages')">
+      Messages <span class="nav-badge" id="adminMsgBadge" style="display:none;">0</span>
+    </button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+    <button class="drawer-item" onclick="navigateFromDrawer('manageOrgs')">Manage Orgs</button>
+    <button class="drawer-item" onclick="navigateFromDrawer('manageUsers')">Manage Users</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+    <button class="drawer-item" onclick="navigateFromDrawer('eventSettings')">Event Settings</button>
+    <button class="drawer-item" onclick="navigateFromDrawer('siteSettings')">Site Settings</button>
+  </div>
+</div>
 
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
