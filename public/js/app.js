@@ -110,6 +110,7 @@ function showSection(section) {
   if (section === 'manageUsers') renderAdminUsers();
   if (section === 'eventSettings') renderEventSettings();
   if (section === 'siteSettings') renderHomepageSettings();
+  if (section === 'dbSettings') applyDbSettingsDemoState();
 }
 
 // ======= MODAL =======
@@ -4170,6 +4171,8 @@ async function saveEventSettings() {
 
 // ======= HOMEPAGE SETTINGS =======
 function renderHomepageSettings() {
+  document.getElementById('hpSiteName').value = AppConfig.siteName;
+  document.getElementById('hpSiteRegion').value = AppConfig.siteRegion;
   document.getElementById('hpHeroLine1').value = AppConfig.heroLine1;
   document.getElementById('hpHeroLine2').value = AppConfig.heroLine2;
   document.getElementById('hpHeroSubtitle').value = AppConfig.heroSubtitle;
@@ -4193,6 +4196,8 @@ function renderHomepageSettings() {
 
 async function saveHomepageSettings() {
   const fields = [
+    { key: 'site_name', prop: 'siteName', label: 'Site Name', el: 'hpSiteName' },
+    { key: 'site_region', prop: 'siteRegion', label: 'Site Region', el: 'hpSiteRegion' },
     { key: 'hero_line_1', prop: 'heroLine1', label: 'Hero Line 1', el: 'hpHeroLine1' },
     { key: 'hero_line_2', prop: 'heroLine2', label: 'Hero Line 2', el: 'hpHeroLine2' },
     { key: 'hero_subtitle', prop: 'heroSubtitle', label: 'Hero Subtitle', el: 'hpHeroSubtitle' },
@@ -4262,6 +4267,8 @@ async function saveHomepageSettings() {
 
 function getHomepageFields() {
   return [
+    { key: 'site_name', prop: 'siteName', el: 'hpSiteName', section: 'site-identity' },
+    { key: 'site_region', prop: 'siteRegion', el: 'hpSiteRegion', section: 'site-identity' },
     { key: 'hero_line_1', prop: 'heroLine1', el: 'hpHeroLine1', section: 'hero-heading' },
     { key: 'hero_line_2', prop: 'heroLine2', el: 'hpHeroLine2', section: 'hero-heading' },
     { key: 'hero_subtitle', prop: 'heroSubtitle', el: 'hpHeroSubtitle', section: 'hero-heading' },
@@ -4336,8 +4343,8 @@ function previewHomepageChanges() {
   const privacyPolicy = formValues.privacyPolicy || '';
   const termsOfService = formValues.termsOfService || '';
 
-  const siteRegion = AppConfig.siteRegion || '';
-  const siteName = AppConfig.siteName || 'Resist Events';
+  const siteRegion = formValues.siteRegion || '';
+  const siteName = formValues.siteName || 'Resist Events';
   const logoHtml = siteRegion
     ? `<span class="highlight">${siteRegion}</span> Resist Events`
     : siteName;
@@ -4405,8 +4412,8 @@ function previewHomepageChanges() {
   This is a static preview. Save changes on the previous page for them to take effect.
 </div>
 
-<!-- Header (always blurred — not configurable) -->
-<header class="site-header preview-static-blur">
+<!-- Header -->
+<header class="site-header ${changedSections.has('site-identity') ? sectionClass('site-identity') : 'preview-static-blur'}">
   <div class="header-inner">
     <a href="#" class="site-logo" onclick="return false;">
       <div class="logo-icon">R</div>
@@ -4555,6 +4562,194 @@ function confirmReseedDatabase() {
       }
     }
   );
+}
+
+// ======= DATABASE SETTINGS DEMO STATE =======
+function applyDbSettingsDemoState() {
+  const isDemo = typeof AppMode !== 'undefined' && AppMode === 'demo';
+  const notice = document.getElementById('dbSettingsDemoNotice');
+  if (notice) notice.style.display = isDemo ? '' : 'none';
+  document.querySelectorAll('#section-dbSettings .db-settings-action').forEach(btn => {
+    btn.disabled = isDemo;
+    if (isDemo) btn.style.opacity = '0.5';
+    else btn.style.opacity = '';
+  });
+}
+
+// ======= RESET DATABASE =======
+let _resetSelections = {};
+
+function showResetDatabaseModal() {
+  const options = [
+    { key: 'full_reset', label: 'Full Database Reset', parent: true },
+    { key: 'reset_orgs', label: 'Organizations', nested: true },
+    { key: 'reset_users', label: 'Users', nested: true },
+    { key: 'reset_events', label: 'Events', nested: true },
+    { key: 'reset_messages', label: 'Messages', nested: true },
+    { key: 'reset_flyers', label: 'Flyer Templates', nested: true },
+    { key: 'reset_styles', label: 'Sitewide Style Templates', nested: true },
+    { key: 'reset_settings', label: 'Site Settings', nested: true },
+  ];
+
+  _resetSelections = {};
+  options.forEach(o => _resetSelections[o.key] = true); // all checked by default
+
+  let html = '<div class="reset-option-list">';
+  for (const o of options) {
+    const cls = o.parent ? 'reset-option parent' : 'reset-option nested';
+    html += `<label class="${cls}">
+      <input type="checkbox" checked data-reset-key="${o.key}" onchange="onResetCheckboxChange('${o.key}', this.checked)">
+      ${o.label}
+    </label>`;
+  }
+  html += '</div>';
+
+  document.getElementById('confirmTitle').textContent = 'Reset Database';
+  document.getElementById('confirmMessage').innerHTML = html;
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = 'Continue';
+  btn.className = 'btn btn-danger btn-sm';
+  btn.onclick = () => { closeConfirm(); resetDatabaseContinue(); };
+  document.getElementById('confirmDialog').classList.add('open');
+}
+
+function onResetCheckboxChange(key, checked) {
+  _resetSelections[key] = checked;
+  const childKeys = ['reset_orgs','reset_users','reset_events','reset_messages','reset_flyers','reset_styles','reset_settings'];
+
+  if (key === 'full_reset') {
+    // Toggle all children to match
+    childKeys.forEach(k => {
+      _resetSelections[k] = checked;
+      const cb = document.querySelector(`[data-reset-key="${k}"]`);
+      if (cb) cb.checked = checked;
+    });
+  } else {
+    // If any child is unchecked, uncheck full_reset
+    if (!checked) {
+      _resetSelections.full_reset = false;
+      const fcb = document.querySelector('[data-reset-key="full_reset"]');
+      if (fcb) fcb.checked = false;
+    } else {
+      // If all children checked, re-check full_reset
+      const allChecked = childKeys.every(k => _resetSelections[k]);
+      if (allChecked) {
+        _resetSelections.full_reset = true;
+        const fcb = document.querySelector('[data-reset-key="full_reset"]');
+        if (fcb) fcb.checked = true;
+      }
+    }
+  }
+}
+
+async function resetDatabaseContinue() {
+  // Check if anything is selected
+  const anySelected = Object.values(_resetSelections).some(v => v);
+  if (!anySelected) {
+    showToast('No categories selected');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/reset-counts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_resetSelections),
+    });
+    if (!res.ok) throw new Error('Failed to fetch counts');
+    const counts = await res.json();
+
+    let html = '';
+    if (_resetSelections.full_reset) {
+      html += '<div style="padding:14px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.25);border-radius:var(--radius-sm);margin-bottom:12px;">';
+      html += '<strong style="color:#E05555;">Full Database Reset</strong>';
+      html += '<p style="font-size:13px;color:var(--text-muted);margin-top:4px;">All data will be wiped and the app will return to a fresh install state.</p>';
+      html += '</div>';
+      html += '<div class="reset-summary-list">';
+      if (counts.organizations != null) html += `<div class="reset-summary-item"><span>Organizations</span><span class="count">${counts.organizations}</span></div>`;
+      if (counts.users != null) html += `<div class="reset-summary-item"><span>Users</span><span class="count">${counts.users}</span></div>`;
+      if (counts.events != null) html += `<div class="reset-summary-item"><span>Events</span><span class="count">${counts.events}</span></div>`;
+      if (counts.messages != null) html += `<div class="reset-summary-item"><span>Messages</span><span class="count">${counts.messages}</span></div>`;
+      if (counts.flyers != null) html += `<div class="reset-summary-item"><span>Flyer Templates</span><span class="count">${counts.flyers}</span></div>`;
+      if (counts.settings != null) html += `<div class="reset-summary-item"><span>Site Settings</span><span class="count">${counts.settings}</span></div>`;
+      html += '</div>';
+    } else {
+      html += '<div class="reset-summary-list">';
+      if (_resetSelections.reset_orgs && counts.organizations != null) {
+        html += `<div class="reset-summary-item"><span>Organizations<br><span class="note">Your admin org will be preserved</span></span><span class="count">${counts.organizations} will be deleted</span></div>`;
+      }
+      if (_resetSelections.reset_users && counts.users != null) {
+        html += `<div class="reset-summary-item"><span>Users<br><span class="note">Your admin account will be preserved</span></span><span class="count">${counts.users} will be deleted</span></div>`;
+      }
+      if (_resetSelections.reset_events && counts.events != null) {
+        html += `<div class="reset-summary-item"><span>Events</span><span class="count">${counts.events} will be deleted</span></div>`;
+      }
+      if (_resetSelections.reset_messages && counts.messages != null) {
+        html += `<div class="reset-summary-item"><span>Messages</span><span class="count">${counts.messages} will be deleted</span></div>`;
+      }
+      if (_resetSelections.reset_flyers && counts.flyers != null) {
+        html += `<div class="reset-summary-item"><span>Flyer Templates</span><span class="count">${counts.flyers} will be deleted</span></div>`;
+      }
+      if (_resetSelections.reset_styles) {
+        html += `<div class="reset-summary-item"><span>Sitewide Style Templates</span><span class="count">0 (placeholder)</span></div>`;
+      }
+      if (_resetSelections.reset_settings && counts.settings != null) {
+        html += `<div class="reset-summary-item"><span>Site Settings<br><span class="note">Core settings (app mode, admin email, site name, region) preserved</span></span><span class="count">${counts.settings} will be deleted</span></div>`;
+      }
+      html += '</div>';
+    }
+
+    html += '<p style="font-size:13px;color:var(--text-muted);margin-top:12px;">Type <strong style="color:#E05555;">RESET</strong> to confirm:</p>';
+    html += '<input type="text" class="form-input" id="resetConfirmInput" placeholder="Type RESET" style="margin-top:6px;">';
+
+    document.getElementById('confirmTitle').textContent = 'Confirm Reset';
+    document.getElementById('confirmMessage').innerHTML = html;
+    const btn = document.getElementById('confirmBtn');
+    btn.textContent = 'Reset';
+    btn.className = 'btn btn-danger btn-sm';
+    btn.onclick = () => { resetDatabaseExecute(); };
+    document.getElementById('confirmDialog').classList.add('open');
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function resetDatabaseExecute() {
+  const input = document.getElementById('resetConfirmInput');
+  if (!input || input.value.trim() !== 'RESET') {
+    showToast('Type RESET to confirm');
+    return;
+  }
+
+  closeConfirm();
+
+  try {
+    const payload = { confirm: 'RESET', ..._resetSelections };
+    const res = await fetch('/api/admin/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Reset failed');
+    }
+    const data = await res.json();
+
+    if (data.full_reset) {
+      // Clear cookies and reload to trigger setup wizard
+      document.cookie = 'demo_role=; Max-Age=0; path=/';
+      document.cookie = 'demo_user_id=; Max-Age=0; path=/';
+      window.location.reload();
+    } else {
+      showToast('Database reset complete');
+      // Reload config and refresh current view
+      await loadConfig();
+      showSection(currentSection || 'home');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
 }
 
 // ======= APP READY CALLBACK =======

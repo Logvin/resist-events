@@ -238,6 +238,41 @@ async function checkBoot() {
   }
 }
 
+// ======= LIVE MODE ROLE =======
+function applyLiveRole() {
+  // Hide demo banner
+  const banner = document.getElementById('demoBanner');
+  if (banner) banner.style.display = 'none';
+
+  // Hide demo role modal
+  const modal = document.getElementById('demoRoleModal');
+  if (modal) modal.style.display = 'none';
+
+  // Show organizer + admin UI elements
+  document.querySelectorAll('.organizer-only').forEach(el => { el.style.display = ''; });
+  document.querySelectorAll('.admin-only').forEach(el => { el.style.display = ''; });
+
+  // Set user badge name
+  const userBadgeName = document.getElementById('userBadgeName');
+  if (userBadgeName) userBadgeName.textContent = 'Admin';
+
+  // Make user badge clickable
+  const userBadge = document.getElementById('userBadge');
+  if (userBadge) {
+    userBadge.classList.add('clickable');
+    userBadge.onclick = function() { if (typeof openOrgProfile === 'function') openOrgProfile(); };
+  }
+
+  // Set DemoSession so existing code works
+  DemoSession.role = 'admin';
+
+  // Update badges
+  if (typeof updateReviewBadge === 'function') updateReviewBadge();
+  if (typeof updateMessagesBadge === 'function') updateMessagesBadge();
+  if (typeof updateMyEventsBadge === 'function') updateMyEventsBadge();
+  if (typeof updateAdminMessagesBadge === 'function') updateAdminMessagesBadge();
+}
+
 // ======= INIT =======
 async function initApp() {
   AppMode = await checkBoot();
@@ -251,9 +286,15 @@ async function initApp() {
   }
 
   await loadConfig();
-  const hasSession = await checkDemoSession();
-  if (!hasSession) {
-    showDemoRoleModal();
+
+  if (AppMode === 'live') {
+    applyLiveRole();
+  } else {
+    // Demo mode
+    const hasSession = await checkDemoSession();
+    if (!hasSession) {
+      showDemoRoleModal();
+    }
   }
 
   // app.js will call renderHomeEvents after this

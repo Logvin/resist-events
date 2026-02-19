@@ -24,6 +24,7 @@ export async function onRequestPut(context) {
   try {
     const body = await context.request.json();
     const allowedKeys = [
+      'site_name', 'site_region',
       'event_organizer_permission',
       'hero_line_1', 'hero_line_2', 'hero_subtitle',
       'show_event_count', 'show_org_count', 'show_people_mobilized',

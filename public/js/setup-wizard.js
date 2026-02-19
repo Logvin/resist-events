@@ -3,6 +3,25 @@
 // Called from config.js before the normal app boots.
 
 let _wizardMode = null; // 'demo' or 'live'
+let _wizardUserId = null; // user_id returned from live setup
+
+function buildStepIndicator(currentStep) {
+  const steps = [
+    { num: 1, label: 'Setup' },
+    { num: 2, label: 'Authentication' },
+  ];
+  let html = '<div class="wizard-steps">';
+  steps.forEach((s, i) => {
+    const cls = s.num === currentStep ? 'active' : (s.num < currentStep ? 'completed' : '');
+    html += `<div class="wizard-step ${cls}"><span class="wizard-step-num">${s.num}</span><span class="wizard-step-label">${s.label}</span></div>`;
+    if (i < steps.length - 1) {
+      const lineCls = s.num < currentStep ? 'completed' : '';
+      html += `<div class="wizard-step-line ${lineCls}"></div>`;
+    }
+  });
+  html += '</div>';
+  return html;
+}
 
 function showSetupWizard() {
   // Remove any existing wizard
@@ -18,6 +37,7 @@ function showSetupWizard() {
 function buildStep1() {
   return `
   <div class="wizard-container">
+    ${buildStepIndicator(1)}
     <div class="wizard-header">
       <div class="wizard-logo">
         <div class="logo-icon" style="width:48px;height:48px;font-size:24px;line-height:48px;">R</div>
@@ -59,6 +79,7 @@ function wizardSelectMode(mode) {
 function buildStep2Demo() {
   return `
   <div class="wizard-container">
+    ${buildStepIndicator(1)}
     <div class="wizard-header">
       <h1 class="wizard-title">Demo Mode — Set Recovery Email</h1>
       <p class="wizard-subtitle">Enter the email address of the one person who will be able to disable Demo Mode later. This email will be used to verify identity before wiping the demo database.</p>
@@ -85,6 +106,7 @@ function buildStep2Demo() {
 function buildStep2Live() {
   return `
   <div class="wizard-container">
+    ${buildStepIndicator(1)}
     <div class="wizard-header">
       <h1 class="wizard-title">Live Mode — Site Setup</h1>
       <p class="wizard-subtitle">Configure the basics for your platform. You can change these later in Site Settings.</p>
@@ -93,20 +115,50 @@ function buildStep2Live() {
     <div class="wizard-form">
       <div class="form-group">
         <label class="form-label">Site Name *</label>
-        <input type="text" class="form-input" id="wizardSiteName" placeholder="e.g. Phoenix Resist Events">
+        <input type="text" class="form-input" id="wizardSiteName" placeholder="e.g. Camelot Resist Events">
+        <p class="form-hint">Displayed in the browser tab title, site header, and copyright text.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Admin Email *</label>
         <input type="email" class="form-input" id="wizardEmail" placeholder="admin@example.com" autocomplete="email">
+        <p class="form-hint">This will be the site admin email. It is important that you use an email you can log into — once authentication is enabled, this email will be used to sign in.</p>
       </div>
       <div class="form-group">
         <label class="form-label">City / Region</label>
-        <input type="text" class="form-input" id="wizardCity" placeholder="e.g. Phoenix">
+        <input type="text" class="form-input" id="wizardCity" placeholder="e.g. Camelot">
+        <p class="form-hint">Highlighted prefix in the site header (e.g. "Camelot Resist Events").</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Admin Group Name</label>
+        <input type="text" class="form-input" id="wizardAdminGroupName" placeholder="e.g. Camelot Resist Admins" value="Site Admins">
+        <p class="form-hint">The name for your admin organization. We recommend something friendly like "Cityname Resist Admins".</p>
       </div>
       <div id="wizardError" class="wizard-error" style="display:none;"></div>
       <div class="wizard-actions">
         <button class="btn btn-ghost" onclick="wizardGoBack()">Back</button>
         <button class="btn btn-primary" id="wizardSubmitBtn" onclick="wizardSubmitLive()">Launch in Live Mode</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildStep2Auth() {
+  return `
+  <div class="wizard-container">
+    ${buildStepIndicator(2)}
+    <div class="wizard-header">
+      <h1 class="wizard-title">Authentication</h1>
+      <p class="wizard-subtitle">Authentication setup is coming soon. For now, you'll be signed in as the site admin.</p>
+    </div>
+
+    <div class="wizard-form" style="text-align:center;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;">
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0;">
+          In a future update, this step will let you configure email-based login, OAuth providers, or other authentication methods. Until then, you'll have full admin access.
+        </p>
+      </div>
+      <div class="wizard-actions" style="justify-content:center;">
+        <button class="btn btn-primary" onclick="wizardFinish()">Go to Your Site</button>
       </div>
     </div>
   </div>`;
@@ -163,6 +215,7 @@ async function wizardSubmitLive() {
   const siteName = document.getElementById('wizardSiteName').value.trim();
   const email = document.getElementById('wizardEmail').value.trim();
   const city = document.getElementById('wizardCity').value.trim();
+  const adminGroupName = document.getElementById('wizardAdminGroupName').value.trim();
   const errorEl = document.getElementById('wizardError');
   errorEl.style.display = 'none';
 
@@ -178,7 +231,7 @@ async function wizardSubmitLive() {
     const res = await fetch('/api/setup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'live', admin_email: email, site_name: siteName, city }),
+      body: JSON.stringify({ mode: 'live', admin_email: email, site_name: siteName, city, admin_group_name: adminGroupName }),
     });
     const data = await res.json();
     if (!res.ok || !data.ok) {
@@ -187,12 +240,27 @@ async function wizardSubmitLive() {
       btn.textContent = 'Launch in Live Mode';
       return;
     }
-    window.location.reload();
+    _wizardUserId = data.user_id || null;
+    // Show auth step placeholder
+    const overlay = document.getElementById('setupWizardOverlay');
+    overlay.innerHTML = buildStep2Auth();
   } catch (e) {
     wizardShowError('Network error. Please try again.');
     btn.disabled = false;
     btn.textContent = 'Launch in Live Mode';
   }
+}
+
+function wizardFinish() {
+  // Clear any existing demo cookies
+  document.cookie = 'demo_role=; Max-Age=0; path=/';
+  document.cookie = 'demo_user_id=; Max-Age=0; path=/';
+  // Set admin cookie so middleware grants access
+  document.cookie = 'demo_role=admin; path=/; max-age=31536000';
+  if (_wizardUserId) {
+    document.cookie = 'demo_user_id=' + _wizardUserId + '; path=/; max-age=31536000';
+  }
+  window.location.reload();
 }
 
 // ======= DEMO MODE DISABLE FLOW =======

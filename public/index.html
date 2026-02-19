@@ -80,7 +80,7 @@
     <button class="nav-btn organizer-btn organizer-only" data-section="myEvents" onclick="showSection('myEvents')">My Events <span class="nav-badge" id="myEventsBadge" style="display:none;background:var(--sage);">0</span></button>
     <button class="nav-btn organizer-btn organizer-only" data-section="contact" onclick="showSection('contact')">Messages <span class="nav-badge" id="messagesBadge" style="display:none;background:var(--sage);">0</span></button>
     <div class="nav-divider admin-only"></div>
-    <button class="nav-btn admin-btn admin-only" onclick="toggleAdminDrawer()">Admin Settings</button>
+    <button class="nav-btn admin-btn admin-only" onclick="toggleAdminDrawer()">Admin</button>
   </div>
 </nav>
 
@@ -286,7 +286,7 @@
           </div>
           <div class="form-group" id="addressGroup">
             <label class="form-label">Address *</label>
-            <input type="text" class="form-input" id="addressInput" placeholder="123 Main St, Phoenix, AZ 85001" required>
+            <input type="text" class="form-input" id="addressInput" placeholder="123 Main St, Camelot, CA 90210" required>
             <p class="form-hint">Full street address with city and ZIP for map integration</p>
           </div>
           <div class="form-group">
@@ -517,9 +517,19 @@
     </div>
     <div class="settings-card">
       <h3 class="settings-card-title">Homepage Settings</h3>
-      <p class="settings-card-desc">Configure hero content, footer, and modal content.</p>
+      <p class="settings-card-desc">Configure site identity, hero content, footer, and modal content.</p>
 
       <div style="margin-top:16px;">
+        <div class="form-group">
+          <label class="form-label">Site Name</label>
+          <input type="text" class="form-input" id="hpSiteName" placeholder="e.g. Camelot Resist Events">
+          <p class="form-hint">Displayed in the browser tab title, site header, and copyright text.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Site Region / City</label>
+          <input type="text" class="form-input" id="hpSiteRegion" placeholder="e.g. Camelot">
+          <p class="form-hint">Highlighted prefix in the site header. Leave blank to show the full site name instead.</p>
+        </div>
         <div class="form-group">
           <label class="form-label">Hero Line 1</label>
           <input type="text" class="form-input" id="hpHeroLine1" placeholder="Together We">
@@ -586,6 +596,35 @@
       <p>Wipe all changes and restore the demo database to the default seed data. The site will remain in demo mode.</p>
       <button class="btn btn-danger btn-sm" onclick="confirmReseedDatabase()">Wipe and Re-Seed Database</button>
     </div>
+
+  </div>
+
+  <!-- DATABASE SETTINGS (admin) -->
+  <div id="section-dbSettings" class="section-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Database Settings</h2>
+        <p class="section-subtitle">Manage your database: backup, restore, or selectively reset data</p>
+      </div>
+      <div id="dbSettingsDemoNotice" style="display:none;background:rgba(255,180,50,0.1);border:1px solid rgba(255,180,50,0.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-muted);max-width:320px;text-align:right;">
+        Database settings are disabled in Demo Mode. Use the controls under Site Settings to manage demo data.
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Backup Database</h3>
+      <p class="settings-card-desc">Export a snapshot of all data for safekeeping.</p>
+      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+    </div>
+    <div class="settings-card">
+      <h3 class="settings-card-title">Restore Database</h3>
+      <p class="settings-card-desc">Import a previously exported snapshot to restore data.</p>
+      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+    </div>
+    <div class="settings-card" style="border-color:rgba(224,85,85,0.2);">
+      <h3 class="settings-card-title" style="color:#E05555;">Reset Database</h3>
+      <p class="settings-card-desc">Selectively clear data from the database. You can reset everything or choose specific categories.</p>
+      <button class="btn btn-danger btn-sm db-settings-action" style="margin-top:8px;" onclick="showResetDatabaseModal()">Reset Database...</button>
+    </div>
   </div>
 
 </main>
@@ -599,7 +638,7 @@
       <span class="footer-sep">|</span>
       <a href="#" onclick="openModal('termsModal'); return false;">Terms of Service</a>
       <span class="footer-sep" id="githubSep">|</span>
-      <a href="https://github.com" target="_blank" rel="noopener" id="githubLink">GitHub</a>
+      <a href="https://github.com/cityresist-events/resist-events" target="_blank" rel="noopener" id="githubLink">GitHub</a>
     </div>
   </div>
 </footer>
@@ -1002,7 +1041,7 @@
 <div class="drawer-overlay" id="adminDrawerOverlay" onclick="closeAdminDrawer()"></div>
 <div class="admin-drawer" id="adminDrawer">
   <div class="drawer-header">
-    <h3>Admin Settings</h3>
+    <h3>Admin</h3>
     <button class="btn btn-ghost btn-sm" onclick="closeAdminDrawer()">&#x2715;</button>
   </div>
   <div class="drawer-body">
@@ -1018,6 +1057,7 @@
     <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
     <button class="drawer-item" onclick="navigateFromDrawer('eventSettings')">Event Settings</button>
     <button class="drawer-item" onclick="navigateFromDrawer('siteSettings')">Site Settings</button>
+    <button class="drawer-item" onclick="navigateFromDrawer('dbSettings')">Database Settings</button>
   </div>
 </div>
 
