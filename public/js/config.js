@@ -28,6 +28,12 @@ const DemoSession = {
   displayName: '',
 };
 
+const LiveSession = {
+  authenticated: false,
+  email: null,
+  teamDomain: null,
+};
+
 async function loadConfig() {
   try {
     const res = await fetch('/api/config');
@@ -230,52 +236,126 @@ let AppMode = null; // 'demo', 'live', 'setup_required'
 async function checkBoot() {
   try {
     const res = await fetch('/api/boot');
-    if (!res.ok) return 'setup_required';
+    if (!res.ok) return { mode: 'setup_required', authMode: 'demo', teamDomain: null };
     const data = await res.json();
-    return data.mode || 'setup_required';
+    return {
+      mode: data.mode || 'setup_required',
+      authMode: data.authMode || 'demo',
+      teamDomain: data.teamDomain || null,
+    };
   } catch (e) {
-    return 'setup_required';
+    return { mode: 'setup_required', authMode: 'demo', teamDomain: null };
   }
 }
 
 // ======= LIVE MODE ROLE =======
-function applyLiveRole() {
-  // Hide demo banner
+async function applyLiveRole() {
+  // Hide demo banner and role modal
   const banner = document.getElementById('demoBanner');
   if (banner) banner.style.display = 'none';
-
-  // Hide demo role modal
   const modal = document.getElementById('demoRoleModal');
   if (modal) modal.style.display = 'none';
 
-  // Show organizer + admin UI elements
-  document.querySelectorAll('.organizer-only').forEach(el => { el.style.display = ''; });
-  document.querySelectorAll('.admin-only').forEach(el => { el.style.display = ''; });
+  // Fetch session from /api/auth/me
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) throw new Error('Failed to fetch session');
+    const data = await res.json();
 
-  // Set user badge name
-  const userBadgeName = document.getElementById('userBadgeName');
-  if (userBadgeName) userBadgeName.textContent = 'Admin';
+    LiveSession.authenticated = data.authenticated;
+    LiveSession.email = data.email || null;
 
-  // Make user badge clickable
-  const userBadge = document.getElementById('userBadge');
-  if (userBadge) {
-    userBadge.classList.add('clickable');
-    userBadge.onclick = function() { if (typeof openOrgProfile === 'function') openOrgProfile(); };
+    if (data.authenticated) {
+      DemoSession.role = data.role;
+      DemoSession.userId = data.user_id || null;
+      DemoSession.orgId = data.org_id || null;
+      DemoSession.orgName = data.org_name || '';
+      DemoSession.displayName = data.display_name || '';
+    } else {
+      DemoSession.role = 'guest';
+      DemoSession.userId = null;
+      DemoSession.orgId = null;
+      DemoSession.orgName = '';
+      DemoSession.displayName = '';
+    }
+  } catch (e) {
+    console.warn('Could not fetch live session, defaulting to guest:', e.message);
+    DemoSession.role = 'guest';
   }
 
-  // Set DemoSession so existing code works
-  DemoSession.role = 'admin';
+  const role = DemoSession.role || 'guest';
+  const isOrganizer = role === 'organizer' || role === 'admin';
+  const isAdmin = role === 'admin';
+
+  // User badge
+  const userBadgeName = document.getElementById('userBadgeName');
+  const userBadge = document.getElementById('userBadge');
+  if (role === 'guest') {
+    if (userBadgeName) userBadgeName.textContent = 'Guest';
+    if (userBadge) { userBadge.classList.remove('clickable'); userBadge.onclick = null; }
+  } else {
+    if (userBadgeName) userBadgeName.textContent = DemoSession.orgName || DemoSession.displayName || role;
+    if (userBadge) {
+      userBadge.classList.add('clickable');
+      userBadge.onclick = function() { if (typeof openOrgProfile === 'function') openOrgProfile(); };
+    }
+  }
+
+  // Login/Logout buttons
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (loginBtn) loginBtn.style.display = LiveSession.authenticated ? 'none' : '';
+  if (logoutBtn) logoutBtn.style.display = LiveSession.authenticated ? '' : 'none';
+
+  // Show/hide role-based UI
+  document.querySelectorAll('.organizer-only').forEach(el => { el.style.display = isOrganizer ? '' : 'none'; });
+  document.querySelectorAll('.admin-only').forEach(el => { el.style.display = isAdmin ? '' : 'none'; });
 
   // Update badges
-  if (typeof updateReviewBadge === 'function') updateReviewBadge();
-  if (typeof updateMessagesBadge === 'function') updateMessagesBadge();
-  if (typeof updateMyEventsBadge === 'function') updateMyEventsBadge();
-  if (typeof updateAdminMessagesBadge === 'function') updateAdminMessagesBadge();
+  if (isAdmin && typeof updateReviewBadge === 'function') updateReviewBadge();
+  if (isOrganizer && typeof updateMessagesBadge === 'function') updateMessagesBadge();
+  if (isOrganizer && typeof updateMyEventsBadge === 'function') updateMyEventsBadge();
+  if (isAdmin && typeof updateAdminMessagesBadge === 'function') updateAdminMessagesBadge();
+}
+
+// ======= CLOUDFLARE ACCESS LOGIN/LOGOUT =======
+async function cfAccessLogin() {
+  // Clear the logged-out flag, then redirect to CF Access login
+  await fetch('/api/auth/logout', { method: 'GET' });
+  const redirectUrl = encodeURIComponent(window.location.origin);
+  window.location.href = `/api/auth/cf-start?redirect_url=${redirectUrl}`;
+}
+
+async function cfAccessLogout() {
+  // Set app-level logged-out flag (middleware will ignore JWT)
+  await fetch('/api/auth/logout', { method: 'POST' });
+  // Kill the CF Access session in the background via hidden iframe
+  // so that clicking Login later forces full re-authentication
+  if (LiveSession.teamDomain) {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = `https://${LiveSession.teamDomain}.cloudflareaccess.com/cdn-cgi/access/logout`;
+    document.body.appendChild(iframe);
+    setTimeout(() => iframe.remove(), 3000);
+  }
+  // Reset local session state to guest
+  LiveSession.authenticated = false;
+  LiveSession.email = null;
+  DemoSession.role = 'guest';
+  DemoSession.userId = null;
+  DemoSession.orgId = null;
+  DemoSession.orgName = '';
+  DemoSession.displayName = '';
+  // Re-render UI as guest
+  applyLiveRole();
+  if (typeof showSection === 'function') showSection('home');
 }
 
 // ======= INIT =======
 async function initApp() {
-  AppMode = await checkBoot();
+  const boot = await checkBoot();
+  AppMode = boot.mode;
+  LiveSession.teamDomain = boot.teamDomain;
 
   if (AppMode === 'setup_required') {
     // Show Setup Wizard — don't load the rest of the app
@@ -288,9 +368,14 @@ async function initApp() {
   await loadConfig();
 
   if (AppMode === 'live') {
-    applyLiveRole();
+    await applyLiveRole();
   } else {
-    // Demo mode
+    // Demo mode — hide login/logout buttons
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+
     const hasSession = await checkDemoSession();
     if (!hasSession) {
       showDemoRoleModal();

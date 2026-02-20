@@ -10,3 +10,12 @@ database_id = "5c41278f-3275-4085-a4a0-837690bfc74c"
 [[r2_buckets]]
 binding = "FLYER_BUCKET"
 bucket_name = "resist-events-flyers"
+
+# Cloudflare Access JWT authentication (live mode)
+# Uncomment and set these to enable Cloudflare Access authentication.
+# When both are set, the app uses JWT auth instead of demo cookie auth.
+# CF_ACCESS_AUD = Application Audience (AUD) tag from Cloudflare Zero Trust dashboard
+# CF_ACCESS_TEAM_DOMAIN = Your team domain prefix (e.g. "myteam" for myteam.cloudflareaccess.com)
+# [vars]
+# CF_ACCESS_AUD = "your-application-aud-tag"
+# CF_ACCESS_TEAM_DOMAIN = "your-team-name"

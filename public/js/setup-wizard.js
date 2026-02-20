@@ -147,14 +147,14 @@ function buildStep2Auth() {
   <div class="wizard-container">
     ${buildStepIndicator(2)}
     <div class="wizard-header">
-      <h1 class="wizard-title">Authentication</h1>
-      <p class="wizard-subtitle">Authentication setup is coming soon. For now, you'll be signed in as the site admin.</p>
+      <h1 class="wizard-title">Setup Complete</h1>
+      <p class="wizard-subtitle">Your site is ready. You'll need to log in with Cloudflare Access using the admin email you provided.</p>
     </div>
 
     <div class="wizard-form" style="text-align:center;">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;">
         <p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin:0;">
-          In a future update, this step will let you configure email-based login, OAuth providers, or other authentication methods. Until then, you'll have full admin access.
+          Click the button below to go to your site. Use the <strong>Log In</strong> button in the header to authenticate via Cloudflare Access with the admin email you just configured.
         </p>
       </div>
       <div class="wizard-actions" style="justify-content:center;">
@@ -252,10 +252,14 @@ async function wizardSubmitLive() {
 }
 
 function wizardFinish() {
-  // Clear any existing demo cookies
+  if (_wizardMode === 'live') {
+    // Live mode: redirect to root without setting cookies — force admin to log in via CF Access
+    window.location.href = '/';
+    return;
+  }
+  // Demo mode: set admin cookie so middleware grants access
   document.cookie = 'demo_role=; Max-Age=0; path=/';
   document.cookie = 'demo_user_id=; Max-Age=0; path=/';
-  // Set admin cookie so middleware grants access
   document.cookie = 'demo_role=admin; path=/; max-age=31536000';
   if (_wizardUserId) {
     document.cookie = 'demo_user_id=' + _wizardUserId + '; path=/; max-age=31536000';

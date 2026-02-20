@@ -193,6 +193,18 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); line-height: 1.2; }
   50% { opacity: 0.4; }
 }
 
+#loginBtn, #logoutBtn {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .header-auth { gap: 4px; }
+  #loginBtn, #logoutBtn { font-size: 11px; padding: 4px 8px; }
+}
+
 /* ======= NAVIGATION ======= */
 .nav-bar {
   background: var(--bg-card);
