@@ -20,8 +20,8 @@ export async function onRequestPost(context) {
     if (!user) {
       // Create a basic session without a user record
       const headers = new Headers();
-      headers.append('Set-Cookie', `demo_role=${role}; Path=/; SameSite=Lax`);
-      headers.append('Set-Cookie', `demo_user_id=0; Path=/; SameSite=Lax`);
+      headers.append('Set-Cookie', `demo_role=${role}; Path=/; HttpOnly; Secure; SameSite=Strict`);
+      headers.append('Set-Cookie', `demo_user_id=0; Path=/; HttpOnly; Secure; SameSite=Strict`);
       headers.set('Content-Type', 'application/json');
       return new Response(JSON.stringify({
         role,
@@ -32,8 +32,8 @@ export async function onRequestPost(context) {
     }
 
     const headers = new Headers();
-    headers.append('Set-Cookie', `demo_role=${user.role}; Path=/; SameSite=Lax`);
-    headers.append('Set-Cookie', `demo_user_id=${user.id}; Path=/; SameSite=Lax`);
+    headers.append('Set-Cookie', `demo_role=${user.role}; Path=/; HttpOnly; Secure; SameSite=Strict`);
+    headers.append('Set-Cookie', `demo_user_id=${user.id}; Path=/; HttpOnly; Secure; SameSite=Strict`);
     headers.set('Content-Type', 'application/json');
 
     return new Response(JSON.stringify({

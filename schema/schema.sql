@@ -37,18 +37,18 @@ CREATE TABLE organizations (
 
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT UNIQUE,
+  email TEXT UNIQUE NOT NULL,
   display_name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'guest', -- admin, organizer, guest
-  org_id INTEGER REFERENCES organizations(id),
+  role TEXT NOT NULL DEFAULT 'guest' CHECK (role IN ('admin', 'organizer', 'guest')),
+  org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
-  org_id INTEGER REFERENCES organizations(id),
-  created_by INTEGER REFERENCES users(id),
+  org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   date TEXT NOT NULL, -- YYYY-MM-DD
   start_time TEXT,
   end_time TEXT,
@@ -61,7 +61,7 @@ CREATE TABLE events (
   reg_required INTEGER DEFAULT 0,
   hide_address INTEGER DEFAULT 0,
   event_type TEXT DEFAULT '', -- e.g. 'march', 'protest_gathering', 'signature_gathering', 'community_event', 'virtual', or custom
-  status TEXT NOT NULL DEFAULT 'draft', -- draft, review, published, archived
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'review', 'pending_org', 'published', 'archived')),
   bring_items TEXT DEFAULT '[]', -- JSON array
   no_bring_items TEXT DEFAULT '[]', -- JSON array
   notes TEXT,
@@ -81,47 +81,47 @@ CREATE TABLE event_flyers (
 CREATE TABLE messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   topic TEXT NOT NULL,
-  org_id INTEGER REFERENCES organizations(id),
-  event_id INTEGER REFERENCES events(id),
-  message_type TEXT NOT NULL DEFAULT 'org',
-  user_id INTEGER REFERENCES users(id),
+  org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+  event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+  message_type TEXT NOT NULL DEFAULT 'org' CHECK (message_type IN ('org', 'direct')),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   archived INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE message_replies (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  message_id INTEGER NOT NULL REFERENCES messages(id),
-  from_type TEXT NOT NULL, -- 'org' or 'admin'
+  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  from_type TEXT NOT NULL CHECK (from_type IN ('org', 'admin')),
   text TEXT NOT NULL,
-  user_id INTEGER REFERENCES users(id),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE user_orgs (
-  user_id INTEGER NOT NULL REFERENCES users(id),
-  org_id INTEGER NOT NULL REFERENCES organizations(id),
-  status TEXT NOT NULL DEFAULT 'active', -- active, archived
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
   created_at TEXT DEFAULT (datetime('now')),
   PRIMARY KEY (user_id, org_id)
 );
 
 CREATE TABLE message_reads (
   user_id INTEGER NOT NULL,
-  message_id INTEGER NOT NULL REFERENCES messages(id),
+  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   last_read_reply_id INTEGER DEFAULT 0,
   PRIMARY KEY (user_id, message_id)
 );
 
 CREATE TABLE review_seen (
   user_id INTEGER NOT NULL,
-  event_id INTEGER NOT NULL REFERENCES events(id),
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   PRIMARY KEY (user_id, event_id)
 );
 
 CREATE TABLE event_published_seen (
   user_id INTEGER NOT NULL,
-  event_id INTEGER NOT NULL REFERENCES events(id),
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   PRIMARY KEY (user_id, event_id)
 );
 
@@ -154,6 +154,16 @@ CREATE TABLE IF NOT EXISTS archived_items (
   item_id INTEGER NOT NULL,
   archived_at TEXT DEFAULT (datetime('now')),
   delete_after TEXT
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,         -- e.g. 'event.publish', 'event.delete', 'user.create'
+  target_type TEXT,             -- e.g. 'event', 'user', 'org', 'backup'
+  target_id INTEGER,
+  detail TEXT,                  -- JSON with extra context (old/new status, etc.)
+  created_at TEXT DEFAULT (datetime('now'))
 );
 
 -- Indexes

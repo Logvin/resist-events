@@ -6,6 +6,7 @@
 // Only the encryption key (hex) is needed from the user in both cases.
 
 import { hexToBytes } from '../../../lib/crypto.js';
+import { auditLog } from '../../../lib/audit.js';
 
 export async function onRequestPost(context) {
   if (context.data.demoRole !== 'admin') {
@@ -169,6 +170,13 @@ export async function onRequestPost(context) {
         `).bind(row.id, row.message_id, row.from_type, row.text, row.user_id, row.created_at).run();
       }
     }
+
+    await auditLog(db, {
+      userId: context.data.demoUserId,
+      action: 'backup.restore',
+      targetType: 'backup',
+      detail: { items: selectedItems, mode, backup_id: backupId || 'uploaded' },
+    });
 
     return Response.json({ ok: true, restored: selectedItems });
   } catch (e) {

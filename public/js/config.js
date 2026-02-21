@@ -62,12 +62,62 @@ async function loadConfig() {
   applyConfig();
 }
 
+// Sanitize HTML content for admin-editable rich text fields.
+// Allows a safe subset of HTML tags (headings, paragraphs, lists, links, formatting).
+function sanitizeHTML(html) {
+  const allowedTags = /^(p|br|b|strong|i|em|u|s|ul|ol|li|h1|h2|h3|h4|a|blockquote|hr|span|div)$/i;
+  const allowedAttrs = { a: ['href', 'target', 'rel'] };
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const frag = template.content;
+
+  function clean(node) {
+    const children = Array.from(node.childNodes);
+    for (const child of children) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName.toLowerCase();
+        if (!allowedTags.test(tag)) {
+          // Replace disallowed element with its text content
+          node.replaceChild(document.createTextNode(child.textContent), child);
+        } else {
+          // Remove disallowed attributes
+          const allowed = allowedAttrs[tag] || [];
+          Array.from(child.attributes).forEach(attr => {
+            if (!allowed.includes(attr.name)) {
+              child.removeAttribute(attr.name);
+            } else if (attr.name === 'href') {
+              // Allow only http/https/mailto links
+              if (!/^(https?:|mailto:)/i.test(attr.value)) {
+                child.removeAttribute(attr.name);
+              }
+            }
+          });
+          clean(child);
+        }
+      }
+    }
+  }
+
+  clean(frag);
+
+  const div = document.createElement('div');
+  div.appendChild(frag.cloneNode(true));
+  return div.innerHTML;
+}
+
 function applyConfig() {
   document.title = AppConfig.siteName;
   const logoText = document.querySelector('.logo-text');
   if (logoText) {
     if (AppConfig.siteRegion) {
-      logoText.innerHTML = `<span class="highlight">${AppConfig.siteRegion}</span> Resist Events`;
+      // Use DOM construction to avoid XSS — siteRegion is plain text
+      const span = document.createElement('span');
+      span.className = 'highlight';
+      span.textContent = AppConfig.siteRegion;
+      logoText.textContent = '';
+      logoText.appendChild(span);
+      logoText.appendChild(document.createTextNode(' Resist Events'));
     } else {
       logoText.textContent = AppConfig.siteName;
     }
@@ -75,13 +125,19 @@ function applyConfig() {
 
   const purposeEl = document.getElementById('purposeContent');
   if (purposeEl && AppConfig.purposeText) {
-    purposeEl.innerHTML = AppConfig.purposeText;
+    purposeEl.innerHTML = sanitizeHTML(AppConfig.purposeText);
   }
 
-  // Hero section
+  // Hero section — plain text only
   const heroTitle = document.getElementById('heroTitle');
   if (heroTitle) {
-    heroTitle.innerHTML = `${AppConfig.heroLine1}<br><span class="accent">${AppConfig.heroLine2}</span>`;
+    heroTitle.textContent = '';
+    heroTitle.appendChild(document.createTextNode(AppConfig.heroLine1));
+    heroTitle.appendChild(document.createElement('br'));
+    const accent = document.createElement('span');
+    accent.className = 'accent';
+    accent.textContent = AppConfig.heroLine2;
+    heroTitle.appendChild(accent);
   }
   const heroSubtitle = document.getElementById('heroSubtitle');
   if (heroSubtitle) {
@@ -96,20 +152,20 @@ function applyConfig() {
   const statMobilizedWrap = document.getElementById('statMobilizedWrap');
   if (statMobilizedWrap) statMobilizedWrap.style.display = AppConfig.showMobilizedCount === 'yes' ? '' : 'none';
 
-  // Privacy & Terms modals
+  // Privacy & Terms modals — sanitized HTML (admin-editable rich text)
   const privacyContent = document.getElementById('privacyContent');
   if (privacyContent && AppConfig.privacyPolicy) {
-    privacyContent.innerHTML = AppConfig.privacyPolicy;
+    privacyContent.innerHTML = sanitizeHTML(AppConfig.privacyPolicy);
   }
   const termsContent = document.getElementById('termsContent');
   if (termsContent && AppConfig.termsOfService) {
-    termsContent.innerHTML = AppConfig.termsOfService;
+    termsContent.innerHTML = sanitizeHTML(AppConfig.termsOfService);
   }
 
-  // Footer
-  const copyrightText = document.getElementById('copyrightText');
-  if (copyrightText) {
-    copyrightText.innerHTML = '&copy; ' + AppConfig.copyrightText;
+  // Footer — plain text only
+  const copyrightEl = document.getElementById('copyrightText');
+  if (copyrightEl) {
+    copyrightEl.textContent = '\u00A9 ' + AppConfig.copyrightText;
   }
   const githubLink = document.getElementById('githubLink');
   const githubSep = document.getElementById('githubSep');
@@ -117,9 +173,12 @@ function applyConfig() {
   if (githubSep) githubSep.style.display = AppConfig.showGithubLink === 'yes' ? '' : 'none';
 
   const syncUrl = document.getElementById('syncCalUrl');
-  const calDomain = AppConfig.domain || window.location.host;
   if (syncUrl) {
-    syncUrl.textContent = `webcal://${calDomain}/cal/subscribe.ics`;
+    if (AppConfig.domain) {
+      syncUrl.textContent = `webcal://${AppConfig.domain}/cal/subscribe.ics`;
+    } else {
+      syncUrl.textContent = '(calendar sync URL not configured — set domain in Site Settings)';
+    }
   }
 }
 

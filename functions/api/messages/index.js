@@ -8,6 +8,9 @@ export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const view = url.searchParams.get('view');
   const eventIdFilter = url.searchParams.get('event_id');
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get('per_page') || '100')));
+  const offset = (page - 1) * perPage;
 
   try {
     let results;
@@ -39,7 +42,8 @@ export async function onRequestGet(context) {
         LEFT JOIN users u2 ON m.user_id = u2.id
         WHERE m.event_id = ?
         ORDER BY m.created_at DESC
-      `).bind(userId || 0, eid).all());
+        LIMIT ? OFFSET ?
+      `).bind(userId || 0, eid, perPage, offset).all());
 
       const messages = results.map(row => ({
         ...row,
@@ -67,7 +71,8 @@ export async function onRequestGet(context) {
         WHERE m.event_id IS NULL
            OR e.status = 'published'
         ORDER BY m.created_at DESC
-      `).bind(userId || 0).all());
+        LIMIT ? OFFSET ?
+      `).bind(userId || 0, perPage, offset).all());
 
       const messages = results.map(row => ({
         ...row,
@@ -89,7 +94,8 @@ export async function onRequestGet(context) {
         LEFT JOIN organizations o ON m.org_id = o.id
         LEFT JOIN users u2 ON m.user_id = u2.id
         ORDER BY m.created_at DESC
-      `).bind(userId || 0).all());
+        LIMIT ? OFFSET ?
+      `).bind(userId || 0, perPage, offset).all());
     } else {
       // Organizer: show messages from all their active orgs + direct messages to them
       // Also include messages for events they created
@@ -105,7 +111,8 @@ export async function onRequestGet(context) {
            OR m.user_id = ?
            OR m.event_id IN (SELECT id FROM events WHERE created_by = ?)
         ORDER BY m.created_at DESC
-      `).bind(userId || 0, userId || 0, userId || 0, userId || 0).all());
+        LIMIT ? OFFSET ?
+      `).bind(userId || 0, userId || 0, userId || 0, userId || 0, perPage, offset).all());
     }
 
     const messages = results.map(row => ({
@@ -135,6 +142,12 @@ export async function onRequestPost(context) {
     const body = await context.request.json();
     if (!body.topic || !body.text) {
       return Response.json({ error: 'Topic and text are required' }, { status: 400 });
+    }
+    if (body.topic.length > 200) {
+      return Response.json({ error: 'Topic must be 200 characters or fewer' }, { status: 400 });
+    }
+    if (body.text.length > 10000) {
+      return Response.json({ error: 'Message text must be 10,000 characters or fewer' }, { status: 400 });
     }
 
     const messageType = body.message_type || 'org';

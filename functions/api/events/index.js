@@ -7,6 +7,9 @@ export async function onRequestGet(context) {
   const role = context.data.demoRole;
   const url = new URL(context.request.url);
   const includeArchived = url.searchParams.get('include_archived') === 'true';
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
+  const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get('per_page') || '100')));
+  const offset = (page - 1) * perPage;
 
   try {
     let query = `
@@ -35,17 +38,34 @@ export async function onRequestGet(context) {
       LEFT JOIN event_flyers ef ON ef.event_id = e.id
     `;
 
+    const conditions = [];
     if (!includeArchived) {
-      query += `
-      WHERE e.id NOT IN (SELECT item_id FROM archived_items WHERE item_type = 'event')
-      `;
+      conditions.push(`e.id NOT IN (SELECT item_id FROM archived_items WHERE item_type = 'event')`);
+    }
+    // Guests can only see published events
+    if (!role || role === 'guest') {
+      conditions.push(`e.status = 'published'`);
+    } else if (role === 'organizer') {
+      // Organizers see published events + their own org's unpublished events
+      const userOrgRow = userId ? await db.prepare('SELECT org_id FROM users WHERE id = ?').bind(userId).first() : null;
+      const orgId = userOrgRow ? userOrgRow.org_id : null;
+      if (orgId) {
+        conditions.push(`(e.status = 'published' OR e.org_id = ${parseInt(orgId)})`);
+      } else {
+        conditions.push(`e.status = 'published'`);
+      }
+    }
+    // Admins see all events
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(' AND ');
     }
 
-    query += ` ORDER BY e.date ASC`;
+    query += ` ORDER BY e.date ASC LIMIT ? OFFSET ?`;
 
     const bindParams = [userId || 0];
     if (role === 'admin') bindParams.push(userId || 0);
     if (role && role !== 'admin') bindParams.push(userId || 0);
+    bindParams.push(perPage, offset);
 
     const { results } = await db.prepare(query).bind(...bindParams).all();
 
@@ -67,6 +87,44 @@ export async function onRequestGet(context) {
   }
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}(:\d{2})?$/;
+const MAX_LENGTHS = { title: 200, address: 500, description: 10000, parking: 500, notes: 5000, event_type: 100 };
+
+function validateEventFields(body, requireTitle = true) {
+  const errors = [];
+  if (requireTitle && (!body.title || !body.title.toString().trim())) {
+    errors.push('Title is required');
+  }
+  if (body.title && body.title.length > MAX_LENGTHS.title) {
+    errors.push(`Title must be ${MAX_LENGTHS.title} characters or fewer`);
+  }
+  if (body.date !== undefined) {
+    if (!body.date || !DATE_RE.test(body.date)) errors.push('Date must be in YYYY-MM-DD format');
+  } else if (requireTitle) {
+    errors.push('Date is required');
+  }
+  if (body.start_time && !TIME_RE.test(body.start_time)) errors.push('start_time must be in HH:MM format');
+  if (body.end_time && !TIME_RE.test(body.end_time)) errors.push('end_time must be in HH:MM format');
+  for (const field of ['website_url', 'reg_link', 'flyer_url']) {
+    if (body[field]) {
+      try { new URL(body[field]); } catch { errors.push(`${field} must be a valid URL`); }
+    }
+  }
+  for (const [field, max] of Object.entries(MAX_LENGTHS)) {
+    if (body[field] && body[field].length > max) {
+      errors.push(`${field} must be ${max} characters or fewer`);
+    }
+  }
+  if (body.bring_items !== undefined && !Array.isArray(body.bring_items)) {
+    errors.push('bring_items must be an array');
+  }
+  if (body.no_bring_items !== undefined && !Array.isArray(body.no_bring_items)) {
+    errors.push('no_bring_items must be an array');
+  }
+  return errors;
+}
+
 export async function onRequestPost(context) {
   const db = context.env.RESIST_DB;
   const userId = context.data.demoUserId;
@@ -85,6 +143,11 @@ export async function onRequestPost(context) {
     }
 
     const body = await context.request.json();
+
+    const validationErrors = validateEventFields(body, true);
+    if (validationErrors.length > 0) {
+      return Response.json({ error: validationErrors.join('; ') }, { status: 400 });
+    }
 
     // Determine target org_id: use body.org_id if provided, else user's org
     let orgId = (body.org_id !== undefined && body.org_id !== null) ? body.org_id : userOrgId;

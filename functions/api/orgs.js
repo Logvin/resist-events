@@ -95,14 +95,14 @@ export async function onRequestPut(context) {
     if (!orgId) {
       // Fall back to user's primary org
       const user = await db.prepare('SELECT org_id FROM users WHERE id = ?').bind(userId).first();
-      if (!user || !user.org_id) return Response.json({ error: 'No org found' }, { status: 404 });
+      if (!user || !user.org_id) return Response.json({ error: 'Not authorized' }, { status: 403 });
       orgId = user.org_id;
     }
 
     // Verify organizer belongs to this org (or is admin)
     if (role !== 'admin') {
       const membership = await db.prepare('SELECT 1 FROM user_orgs WHERE user_id = ? AND org_id = ? AND status = ?').bind(userId, orgId, 'active').first();
-      if (!membership) return Response.json({ error: 'Not a member of this organization' }, { status: 403 });
+      if (!membership) return Response.json({ error: 'Not authorized' }, { status: 403 });
     }
 
     const { name, website, socials, logo_url, qr_url, city, mission_statement, can_self_publish, can_cross_publish } = body;

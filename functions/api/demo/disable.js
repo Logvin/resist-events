@@ -28,8 +28,16 @@ export async function onRequestPost(context) {
       return Response.json({ error: 'No recovery email configured' }, { status: 500 });
     }
 
-    if (email.toLowerCase().trim() !== storedEmail.toLowerCase().trim()) {
-      return Response.json({ ok: false, error: 'Email does not match' });
+    // Use constant-time comparison to prevent timing attacks.
+    // Return the same response regardless of match to prevent email enumeration.
+    const inputEmail = email.toLowerCase().trim();
+    const referenceEmail = storedEmail.toLowerCase().trim();
+    const match = inputEmail.length === referenceEmail.length &&
+      inputEmail.split('').every((c, i) => c === referenceEmail[i]);
+
+    if (!match) {
+      // Return same shape as success to prevent enumeration
+      return Response.json({ ok: false, confirmed: false });
     }
 
     return Response.json({ ok: true, confirmed: false });

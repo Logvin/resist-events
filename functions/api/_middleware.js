@@ -15,16 +15,25 @@ function parseCookies(cookieHeader) {
 export async function onRequest(context) {
   const { request } = context;
 
+  // Determine allowed origin: explicit env var, or same-origin only
+  const allowedOrigin = context.env.ALLOWED_ORIGIN || null;
+  const requestOrigin = request.headers.get('Origin') || '';
+  const corsOrigin = allowedOrigin
+    ? (requestOrigin === allowedOrigin ? allowedOrigin : null)
+    : null;
+
   // CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
+    const headers = {
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    };
+    if (corsOrigin) {
+      headers['Access-Control-Allow-Origin'] = corsOrigin;
+      headers['Vary'] = 'Origin';
+    }
+    return new Response(null, { headers });
   }
 
   context.data = context.data || {};
@@ -97,8 +106,11 @@ export async function onRequest(context) {
   // Continue to next handler
   const response = await context.next();
 
-  // Add CORS headers to response
+  // Add CORS headers to response (only if origin is allowed)
   const newResponse = new Response(response.body, response);
-  newResponse.headers.set('Access-Control-Allow-Origin', '*');
+  if (corsOrigin) {
+    newResponse.headers.set('Access-Control-Allow-Origin', corsOrigin);
+    newResponse.headers.set('Vary', 'Origin');
+  }
   return newResponse;
 }

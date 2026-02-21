@@ -2,6 +2,7 @@
 // POST /api/admin/backups — create encrypted backup (admin only)
 
 import { bytesToHex } from '../../../lib/crypto.js';
+import { auditLog } from '../../../lib/audit.js';
 
 export async function onRequestGet(context) {
   if (context.data.demoRole !== 'admin') {
@@ -99,6 +100,14 @@ export async function onRequestPost(context) {
     const result = await db.prepare(
       'INSERT INTO backups (filename, label, type, size_bytes, iv, created_by) VALUES (?, ?, ?, ?, ?, ?)'
     ).bind(filename, label || null, type, sizeBytes, ivHex, userId || null).run();
+
+    await auditLog(db, {
+      userId,
+      action: 'backup.create',
+      targetType: 'backup',
+      targetId: result.meta.last_row_id,
+      detail: { filename, type, size_bytes: sizeBytes },
+    });
 
     return Response.json({
       ok: true,
