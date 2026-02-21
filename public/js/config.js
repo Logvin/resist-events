@@ -117,8 +117,9 @@ function applyConfig() {
   if (githubSep) githubSep.style.display = AppConfig.showGithubLink === 'yes' ? '' : 'none';
 
   const syncUrl = document.getElementById('syncCalUrl');
-  if (syncUrl && AppConfig.domain) {
-    syncUrl.textContent = `webcal://${AppConfig.domain}/cal/subscribe.ics`;
+  const calDomain = AppConfig.domain || window.location.host;
+  if (syncUrl) {
+    syncUrl.textContent = `webcal://${calDomain}/cal/subscribe.ics`;
   }
 }
 
