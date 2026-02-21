@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "wrangler pages dev public",
-    "deploy": "wrangler pages deploy public",
+    "deploy": "[ \"$CF_PAGES\" = \"1\" ] && echo 'CF Pages build — skipping wrangler deploy' || wrangler pages deploy public",
     "db:migrate": "wrangler d1 execute RESIST_DB --local --file=schema/schema.sql",
     "db:seed": "wrangler d1 execute RESIST_DB --local --file=seed/seed-camelot.sql",
     "db:reset": "rm -rf .wrangler && npm run db:migrate",
+    "db:seed:local": "wrangler d1 execute RESIST_DB --local --file=seed/seed-camelot-local.sql",
+    "db:reset:local": "rm -rf .wrangler && npm run db:migrate && npm run db:seed:local",
     "db:migrate:remote": "wrangler d1 execute RESIST_DB --remote --file=schema/schema.sql",
     "db:seed:remote": "wrangler d1 execute RESIST_DB --remote --file=seed/seed-camelot.sql"
   },
