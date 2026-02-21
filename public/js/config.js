@@ -31,7 +31,6 @@ const DemoSession = {
 const LiveSession = {
   authenticated: false,
   email: null,
-  teamDomain: null,
 };
 
 async function loadConfig() {
@@ -236,15 +235,14 @@ let AppMode = null; // 'demo', 'live', 'setup_required'
 async function checkBoot() {
   try {
     const res = await fetch('/api/boot');
-    if (!res.ok) return { mode: 'setup_required', authMode: 'demo', teamDomain: null };
+    if (!res.ok) return { mode: 'setup_required', authMode: 'demo' };
     const data = await res.json();
     return {
       mode: data.mode || 'setup_required',
       authMode: data.authMode || 'demo',
-      teamDomain: data.teamDomain || null,
     };
   } catch (e) {
-    return { mode: 'setup_required', authMode: 'demo', teamDomain: null };
+    return { mode: 'setup_required', authMode: 'demo' };
   }
 }
 
@@ -330,14 +328,13 @@ async function cfAccessLogout() {
   // Set app-level logged-out flag (middleware will ignore JWT)
   await fetch('/api/auth/logout', { method: 'POST' });
   // Kill the CF Access session in the background via hidden iframe
-  // so that clicking Login later forces full re-authentication
-  if (LiveSession.teamDomain) {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = `https://${LiveSession.teamDomain}.cloudflareaccess.com/cdn-cgi/access/logout`;
-    document.body.appendChild(iframe);
-    setTimeout(() => iframe.remove(), 3000);
-  }
+  // so that clicking Login later forces full re-authentication.
+  // The team domain is kept server-side; /api/auth/cf-logout redirects there.
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = '/api/auth/cf-logout';
+  document.body.appendChild(iframe);
+  setTimeout(() => iframe.remove(), 3000);
   // Reset local session state to guest
   LiveSession.authenticated = false;
   LiveSession.email = null;
@@ -355,7 +352,6 @@ async function cfAccessLogout() {
 async function initApp() {
   const boot = await checkBoot();
   AppMode = boot.mode;
-  LiveSession.teamDomain = boot.teamDomain;
 
   if (AppMode === 'setup_required') {
     // Show Setup Wizard — don't load the rest of the app
