@@ -11,6 +11,9 @@ DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS organizations;
 DROP TABLE IF EXISTS site_config;
+DROP TABLE IF EXISTS archived_items;
+DROP TABLE IF EXISTS backup_schedules;
+DROP TABLE IF EXISTS backups;
 
 CREATE TABLE site_config (
   key TEXT PRIMARY KEY,
@@ -122,6 +125,37 @@ CREATE TABLE event_published_seen (
   PRIMARY KEY (user_id, event_id)
 );
 
+CREATE TABLE IF NOT EXISTS backups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  filename TEXT NOT NULL,
+  label TEXT,
+  type TEXT NOT NULL DEFAULT 'full',
+  size_bytes INTEGER,
+  iv TEXT,                            -- hex IV stored here; key is never stored
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT DEFAULT (datetime('now')),
+  expires_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS backup_schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL,
+  cron TEXT NOT NULL,
+  backup_type TEXT NOT NULL DEFAULT 'full',
+  retention_days INTEGER NOT NULL DEFAULT 30,
+  active INTEGER NOT NULL DEFAULT 1,
+  encryption_key_hint TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS archived_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_type TEXT NOT NULL,
+  item_id INTEGER NOT NULL,
+  archived_at TEXT DEFAULT (datetime('now')),
+  delete_after TEXT
+);
+
 -- Indexes
 CREATE INDEX idx_events_date ON events(date);
 CREATE INDEX idx_events_org ON events(org_id);
@@ -129,3 +163,4 @@ CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_messages_org ON messages(org_id);
 CREATE INDEX idx_messages_user ON messages(user_id);
 CREATE INDEX idx_replies_message ON message_replies(message_id);
+CREATE INDEX idx_archived_items_lookup ON archived_items(item_type, item_id);

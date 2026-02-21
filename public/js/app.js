@@ -110,7 +110,7 @@ function showSection(section) {
   if (section === 'manageUsers') renderAdminUsers();
   if (section === 'eventSettings') renderEventSettings();
   if (section === 'siteSettings') renderHomepageSettings();
-  if (section === 'dbSettings') applyDbSettingsDemoState();
+  if (section === 'dbSettings') renderDbSettings();
 }
 
 // ======= MODAL =======
@@ -4564,16 +4564,498 @@ function confirmReseedDatabase() {
   );
 }
 
-// ======= DATABASE SETTINGS DEMO STATE =======
-function applyDbSettingsDemoState() {
+// ======= DATABASE SETTINGS =======
+
+function renderDbSettings() {
   const isDemo = typeof AppMode !== 'undefined' && AppMode === 'demo';
   const notice = document.getElementById('dbSettingsDemoNotice');
   if (notice) notice.style.display = isDemo ? '' : 'none';
   document.querySelectorAll('#section-dbSettings .db-settings-action').forEach(btn => {
     btn.disabled = isDemo;
-    if (isDemo) btn.style.opacity = '0.5';
-    else btn.style.opacity = '';
+    btn.style.opacity = isDemo ? '0.5' : '';
   });
+  if (!isDemo) {
+    renderBackupList();
+  }
+}
+
+function switchDbTab(tab) {
+  document.querySelectorAll('.db-tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.db-tab-nav .db-tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('db-tab-' + tab);
+  const btn = document.getElementById('db-tab-btn-' + tab);
+  if (panel) panel.style.display = '';
+  if (btn) btn.classList.add('active');
+  if (tab === 'backup') renderBackupList();
+  if (tab === 'restore') renderRestoreBackupList();
+  if (tab === 'cleanup') renderCleanupCounts();
+  if (tab === 'schedules') renderScheduleList();
+}
+
+function switchScriptTab(tab) {
+  document.getElementById('scriptTabWorker').style.display = tab === 'worker' ? '' : 'none';
+  document.getElementById('scriptTabToml').style.display = tab === 'toml' ? '' : 'none';
+  document.getElementById('scriptTabWorkerBtn').classList.toggle('active', tab === 'worker');
+  document.getElementById('scriptTabTomlBtn').classList.toggle('active', tab === 'toml');
+}
+
+// Formats a D1 datetime string (UTC, no 'Z') as local date + time
+function formatBackupDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr.replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Full Backup checkbox — toggles individual table checkboxes
+function toggleFullBackup(cb) {
+  const wrap = document.getElementById('backupTableItems');
+  if (cb.checked) {
+    wrap.style.opacity = '0.35';
+    wrap.style.pointerEvents = 'none';
+    wrap.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = true);
+  } else {
+    wrap.style.opacity = '';
+    wrap.style.pointerEvents = '';
+  }
+}
+
+// Full Restore checkbox — toggles individual table checkboxes
+function toggleRestoreFull(cb) {
+  const wrap = document.getElementById('restoreTableItems');
+  if (cb.checked) {
+    wrap.style.opacity = '0.35';
+    wrap.style.pointerEvents = 'none';
+    wrap.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = true);
+  } else {
+    wrap.style.opacity = '';
+    wrap.style.pointerEvents = '';
+  }
+}
+
+// Upload section toggle
+function toggleUploadSection() {
+  const section = document.getElementById('uploadSection');
+  const btn = document.getElementById('uploadToggleBtn');
+  const visible = section.style.display !== 'none';
+  section.style.display = visible ? 'none' : '';
+  btn.textContent = visible ? '+ Upload a backup file from your computer' : '− Upload a backup file from your computer';
+}
+
+// ---- Restore: source selection ----
+let _selectedBackupId = null;
+let _selectedBackupLabel = null;
+let _uploadedFile = null;
+
+function selectBackupForRestore(id, label) {
+  _selectedBackupId = id;
+  _selectedBackupLabel = label;
+  _uploadedFile = null;
+  // Clear file input
+  const fi = document.getElementById('restoreFile');
+  if (fi) fi.value = '';
+  // Show indicator
+  const wrap = document.getElementById('restoreSelectedWrap');
+  document.getElementById('restoreSelectedLabel').textContent = label;
+  wrap.style.display = 'flex';
+  // Highlight selected row
+  document.querySelectorAll('#restoreBackupListWrap tr[data-backup-id]').forEach(tr => {
+    tr.style.background = tr.dataset.backupId == id ? 'rgba(80,160,100,0.08)' : '';
+  });
+  // Reset preview
+  document.getElementById('restorePreviewWrap').style.display = 'none';
+}
+
+function selectUploadedFile(input) {
+  if (input.files && input.files[0]) {
+    _uploadedFile = input.files[0];
+    _selectedBackupId = null;
+    _selectedBackupLabel = null;
+    document.getElementById('restoreSelectedWrap').style.display = 'flex';
+    document.getElementById('restoreSelectedLabel').textContent = 'Uploaded file: ' + input.files[0].name;
+    document.querySelectorAll('#restoreBackupListWrap tr[data-backup-id]').forEach(tr => tr.style.background = '');
+    document.getElementById('restorePreviewWrap').style.display = 'none';
+  }
+}
+
+function clearRestoreSelection() {
+  _selectedBackupId = null;
+  _selectedBackupLabel = null;
+  _uploadedFile = null;
+  const fi = document.getElementById('restoreFile');
+  if (fi) fi.value = '';
+  document.getElementById('restoreSelectedWrap').style.display = 'none';
+  document.querySelectorAll('#restoreBackupListWrap tr[data-backup-id]').forEach(tr => tr.style.background = '');
+  document.getElementById('restorePreviewWrap').style.display = 'none';
+}
+
+// ---- Backup list (Backup tab) ----
+async function renderBackupList() {
+  const wrap = document.getElementById('backupListWrap');
+  if (!wrap) return;
+  try {
+    const backups = await api('/admin/backups');
+    if (!backups.length) {
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted);margin-top:12px;">No backups yet.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Label</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Type</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Created</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Size</th>
+            <th style="text-align:right;padding:6px 0;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${backups.map(b => `
+            <tr style="border-bottom:1px solid var(--border-subtle);">
+              <td style="padding:8px 0;">${b.label || '<em style="color:var(--text-dim)">Unlabeled</em>'}</td>
+              <td style="padding:8px 0;">${b.type}</td>
+              <td style="padding:8px 0;">${formatBackupDate(b.created_at)}</td>
+              <td style="padding:8px 0;">${formatBytes(b.size_bytes)}</td>
+              <td style="padding:8px 0;text-align:right;white-space:nowrap;">
+                <button class="btn btn-ghost btn-xs" onclick="downloadBackup(${b.id})">Download</button>
+                <button class="btn btn-ghost btn-xs" style="color:#E05555;" onclick="deleteBackup(${b.id})">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    wrap.innerHTML = `<p style="font-size:13px;color:#E05555;margin-top:12px;">Error loading backups: ${e.message}</p>`;
+  }
+}
+
+// ---- Restore backup list (Restore tab) ----
+async function renderRestoreBackupList() {
+  const wrap = document.getElementById('restoreBackupListWrap');
+  if (!wrap) return;
+  try {
+    const backups = await api('/admin/backups');
+    if (!backups.length) {
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No saved backups yet. Create one on the Backup tab.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <thead>
+          <tr style="background:var(--bg-input);">
+            <th style="text-align:left;padding:8px 10px;color:var(--text-muted);font-weight:500;">Label / Date</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--text-muted);font-weight:500;">Type</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--text-muted);font-weight:500;">Size</th>
+            <th style="text-align:right;padding:8px 10px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${backups.map(b => {
+            const label = b.label ? `<strong>${b.label}</strong><br><span style="color:var(--text-dim);font-size:11px;">${formatBackupDate(b.created_at)}</span>` : `<span style="color:var(--text-dim);">${formatBackupDate(b.created_at)}</span>`;
+            const typeTag = b.type === 'full' ? '<span style="background:rgba(80,160,100,0.15);color:var(--sage);padding:1px 6px;border-radius:3px;font-size:11px;">Full</span>' : '<span style="background:rgba(200,150,50,0.15);color:#C89632;padding:1px 6px;border-radius:3px;font-size:11px;">Partial</span>';
+            return `<tr data-backup-id="${b.id}" style="border-top:1px solid var(--border);cursor:pointer;" onclick="selectBackupForRestore(${b.id}, '${(b.label || formatBackupDate(b.created_at)).replace(/'/g, '\\\'')}')" onmouseover="this.style.background='rgba(80,160,100,0.05)'" onmouseout="this.style.background=this.dataset.backupId==${_selectedBackupId}?'rgba(80,160,100,0.08)':''">
+              <td style="padding:8px 10px;">${label}</td>
+              <td style="padding:8px 10px;">${typeTag}</td>
+              <td style="padding:8px 10px;">${formatBytes(b.size_bytes)}</td>
+              <td style="padding:8px 10px;text-align:right;"><span style="font-size:11px;color:var(--sage);">Select →</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    wrap.innerHTML = `<p style="font-size:13px;color:#E05555;">Error loading backups: ${e.message}</p>`;
+  }
+}
+
+async function createBackup() {
+  const label = document.getElementById('backupLabel').value.trim();
+  const isFull = document.getElementById('backupFull').checked;
+  const items = isFull
+    ? ['events', 'organizations', 'users', 'messages']
+    : [...document.querySelectorAll('input[name="backupItem"]:checked')].map(cb => cb.value);
+  const type = isFull ? 'full' : 'partial';
+  try {
+    const result = await api('/admin/backups', {
+      method: 'POST',
+      body: JSON.stringify({ label, items, type }),
+    });
+    document.getElementById('backupKeyId').textContent = result.id;
+    document.getElementById('backupKeyFilename').textContent = result.filename.split('/').pop();
+    document.getElementById('backupKeyValue').textContent = result.encryption_key;
+    document.getElementById('backupKeySize').textContent = formatBytes(result.size_bytes);
+    openModal('backupKeyModal');
+    renderBackupList();
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function downloadBackup(id) {
+  try {
+    const resp = await fetch('/api/admin/backups/' + id);
+    if (!resp.ok) throw new Error('Download failed');
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = resp.headers.get('content-disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    a.download = match ? match[1] : 'backup.enc';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function deleteBackup(id) {
+  showConfirm('Delete Backup', 'This will permanently delete the backup file. This cannot be undone.', 'Delete', async () => {
+    try {
+      await api('/admin/backups/' + id, { method: 'DELETE' });
+      showToast('Backup deleted');
+      renderBackupList();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+let _restorePreviewData = null;
+
+async function previewRestore() {
+  const key = document.getElementById('restoreKey').value.trim();
+  const mode = document.getElementById('restoreMode').value;
+  const isFull = document.getElementById('restoreFull').checked;
+  const items = isFull
+    ? ['events', 'organizations', 'users', 'messages']
+    : [...document.querySelectorAll('input[name="restoreItem"]:checked')].map(cb => cb.value);
+
+  if (!key) { showToast('Please enter the encryption key'); return; }
+  if (!_selectedBackupId && !_uploadedFile) {
+    showToast('Please select a saved backup or upload a backup file');
+    return;
+  }
+
+  const formData = new FormData();
+  if (_selectedBackupId) {
+    formData.append('backup_id', _selectedBackupId);
+  } else {
+    formData.append('file', _uploadedFile);
+  }
+  formData.append('key', key);
+  formData.append('mode', mode);
+  items.forEach(item => formData.append('items', item));
+
+  try {
+    const resp = await fetch('/api/admin/backups/restore', { method: 'POST', body: formData });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Preview failed');
+
+    _restorePreviewData = { backupId: _selectedBackupId, file: _uploadedFile, key, mode, items };
+
+    let html = `<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Backup from <strong>${result.timestamp ? formatBackupDate(result.timestamp) : 'unknown'}</strong> &mdash; type: <strong>${result.type || 'full'}</strong></p>`;
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">';
+    html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 0;color:var(--text-muted);">Table</th><th style="text-align:right;padding:4px 0;color:var(--text-muted);">In backup</th><th style="text-align:right;padding:4px 0;color:var(--text-muted);">Currently in DB</th></tr>';
+    for (const [table, counts] of Object.entries(result.preview || {})) {
+      html += `<tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:6px 0;">${table}</td><td style="text-align:right;padding:6px 0;">${counts.backup}</td><td style="text-align:right;padding:6px 0;">${counts.current}</td></tr>`;
+    }
+    html += '</table>';
+
+    document.getElementById('restorePreviewContent').innerHTML = html;
+    document.getElementById('restorePreviewWrap').style.display = '';
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function executeRestore() {
+  const confirmInput = document.getElementById('restoreConfirmInput').value.trim();
+  if (confirmInput !== 'RESTORE') { showToast('Please type RESTORE to confirm'); return; }
+  if (!_restorePreviewData) { showToast('Please preview first'); return; }
+
+  const { backupId, file, key, mode, items } = _restorePreviewData;
+  const formData = new FormData();
+  if (backupId) {
+    formData.append('backup_id', backupId);
+  } else {
+    formData.append('file', file);
+  }
+  formData.append('key', key);
+  formData.append('mode', mode);
+  formData.append('confirmed', 'true');
+  items.forEach(item => formData.append('items', item));
+
+  try {
+    const resp = await fetch('/api/admin/backups/restore', { method: 'POST', body: formData });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Restore failed');
+
+    showToast('Restore complete! Restored: ' + (result.restored || []).join(', '));
+    document.getElementById('restorePreviewWrap').style.display = 'none';
+    document.getElementById('restoreConfirmInput').value = '';
+    _restorePreviewData = null;
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function renderCleanupCounts() {
+  const wrap = document.getElementById('cleanupCountsWrap');
+  if (!wrap) return;
+  try {
+    const counts = await api('/admin/cleanup');
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">';
+    html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 0;color:var(--text-muted);">Table</th><th style="text-align:right;padding:4px 0;color:var(--text-muted);">Total</th><th style="text-align:right;padding:4px 0;color:var(--text-muted);">Eligible for cleanup</th></tr>';
+    for (const [table, c] of Object.entries(counts)) {
+      html += `<tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:6px 0;">${table}</td><td style="text-align:right;padding:6px 0;">${c.total}</td><td style="text-align:right;padding:6px 0;${c.eligible > 0 ? 'color:#E09050;' : ''}">${c.eligible}</td></tr>`;
+    }
+    html += '</table>';
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<p style="font-size:13px;color:#E05555;">Error loading counts: ${e.message}</p>`;
+  }
+}
+
+async function executeCleanup() {
+  const action = document.getElementById('cleanupAction').value;
+  const items = {
+    events: document.getElementById('cleanupEvents').checked,
+    messages: document.getElementById('cleanupMessages').checked,
+    archived_items: document.getElementById('cleanupArchivedItems').checked,
+  };
+  const archive_days = parseInt(document.getElementById('cleanupArchiveDays').value) || 0;
+
+  if (!Object.values(items).some(v => v)) {
+    showToast('Please select at least one item type to clean up');
+    return;
+  }
+
+  showConfirm(
+    action === 'delete' ? 'Permanently Delete Data?' : 'Archive Data?',
+    action === 'delete' ? 'This cannot be undone. Selected data will be permanently removed.' : 'Selected data will be moved to the archive.',
+    action === 'delete' ? 'Delete' : 'Archive',
+    async () => {
+      try {
+        await api('/admin/cleanup', {
+          method: 'POST',
+          body: JSON.stringify({ action, items, archive_days: archive_days || undefined }),
+        });
+        showToast('Cleanup complete');
+        renderCleanupCounts();
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    }
+  );
+}
+
+async function renderScheduleList() {
+  const wrap = document.getElementById('scheduleListWrap');
+  if (!wrap) return;
+  try {
+    const schedules = await api('/admin/backup-schedules');
+    if (!schedules.length) {
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No schedules yet. Create one below.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Label</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Cron</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Type</th>
+            <th style="text-align:left;padding:6px 0;color:var(--text-muted);font-weight:500;">Retain</th>
+            <th style="text-align:right;padding:6px 0;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${schedules.map(s => `
+            <tr style="border-bottom:1px solid var(--border-subtle);">
+              <td style="padding:8px 0;">${s.label}</td>
+              <td style="padding:8px 0;font-family:monospace;font-size:12px;">${s.cron}</td>
+              <td style="padding:8px 0;">${s.backup_type}</td>
+              <td style="padding:8px 0;">${s.retention_days}d</td>
+              <td style="padding:8px 0;text-align:right;white-space:nowrap;">
+                <button class="btn btn-ghost btn-xs" onclick="showScheduleScript(${s.id})">Script</button>
+                <button class="btn btn-ghost btn-xs" style="color:#E05555;" onclick="deleteSchedule(${s.id})">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    wrap.innerHTML = `<p style="font-size:13px;color:#E05555;">Error: ${e.message}</p>`;
+  }
+}
+
+async function saveSchedule() {
+  const label = document.getElementById('schedLabel').value.trim();
+  const cron = document.getElementById('schedCron').value.trim();
+  const backup_type = document.getElementById('schedType').value;
+  const retention_days = parseInt(document.getElementById('schedRetention').value) || 30;
+
+  if (!label || !cron) { showToast('Label and cron are required'); return; }
+
+  try {
+    const result = await api('/admin/backup-schedules', {
+      method: 'POST',
+      body: JSON.stringify({ label, cron, backup_type, retention_days }),
+    });
+    showToast('Schedule created');
+    renderScheduleList();
+    document.getElementById('scheduleScriptWorker').textContent = result.workerScript;
+    document.getElementById('scheduleScriptToml').textContent = result.wranglerToml;
+    switchScriptTab('worker');
+    openModal('scheduleScriptModal');
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function deleteSchedule(id) {
+  showConfirm('Delete Schedule', 'This will remove the backup schedule configuration.', 'Delete', async () => {
+    try {
+      await api('/admin/backup-schedules/' + id, { method: 'DELETE' });
+      showToast('Schedule deleted');
+      renderScheduleList();
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+  });
+}
+
+async function showScheduleScript(id) {
+  try {
+    const result = await api('/admin/backup-schedules/' + id + '?action=generate-script');
+    document.getElementById('scheduleScriptWorker').textContent = result.workerScript;
+    document.getElementById('scheduleScriptToml').textContent = result.wranglerToml;
+    switchScriptTab('worker');
+    openModal('scheduleScriptModal');
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
 }
 
 // ======= RESET DATABASE =======

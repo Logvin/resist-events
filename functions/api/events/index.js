@@ -5,6 +5,8 @@ export async function onRequestGet(context) {
   const db = context.env.RESIST_DB;
   const userId = context.data.demoUserId;
   const role = context.data.demoRole;
+  const url = new URL(context.request.url);
+  const includeArchived = url.searchParams.get('include_archived') === 'true';
 
   try {
     let query = `
@@ -31,8 +33,15 @@ export async function onRequestGet(context) {
       FROM events e
       LEFT JOIN organizations o ON e.org_id = o.id
       LEFT JOIN event_flyers ef ON ef.event_id = e.id
-      ORDER BY e.date ASC
     `;
+
+    if (!includeArchived) {
+      query += `
+      WHERE e.id NOT IN (SELECT item_id FROM archived_items WHERE item_type = 'event')
+      `;
+    }
+
+    query += ` ORDER BY e.date ASC`;
 
     const bindParams = [userId || 0];
     if (role === 'admin') bindParams.push(userId || 0);

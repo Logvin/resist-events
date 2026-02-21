@@ -6,6 +6,7 @@ export async function onRequestGet(context) {
   const db = context.env.RESIST_DB;
   const url = new URL(context.request.url);
   const cityFilter = url.searchParams.get('city');
+  const includeArchived = url.searchParams.get('include_archived') === 'true';
 
   try {
     let query = `SELECT o.id, o.name, o.abbreviation, o.website, o.socials, o.logo_url, o.qr_url, o.city, o.mission_statement,
@@ -17,9 +18,17 @@ export async function onRequestGet(context) {
     LEFT JOIN user_orgs uo ON o.id = uo.org_id AND uo.status = 'active'`;
 
     const bindings = [];
+    const conditions = [];
+
+    if (!includeArchived) {
+      conditions.push(`o.id NOT IN (SELECT item_id FROM archived_items WHERE item_type = 'org')`);
+    }
     if (cityFilter) {
-      query += ` WHERE o.city = ?`;
+      conditions.push(`o.city = ?`);
       bindings.push(cityFilter);
+    }
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(' AND ');
     }
 
     query += ` GROUP BY o.id ORDER BY event_count DESC, o.name ASC`;

@@ -61,11 +61,20 @@ export async function onRequest(context) {
           ).bind(payload.email).first();
 
           if (user) {
-            context.data.demoRole = user.role;
-            context.data.demoUserId = user.id;
-            context.data.liveOrgId = user.org_id;
-            context.data.liveOrgName = user.org_name || '';
-            context.data.liveDisplayName = user.display_name || '';
+            // Check if user is archived — if so, treat as guest
+            const archivedCheck = await db.prepare(
+              "SELECT 1 FROM archived_items WHERE item_type = 'user' AND item_id = ? LIMIT 1"
+            ).bind(user.id).first();
+
+            if (archivedCheck) {
+              // User is archived — treat as guest
+            } else {
+              context.data.demoRole = user.role;
+              context.data.demoUserId = user.id;
+              context.data.liveOrgId = user.org_id;
+              context.data.liveOrgName = user.org_name || '';
+              context.data.liveDisplayName = user.display_name || '';
+            }
           }
           // If no user found in DB, they stay as guest
         }

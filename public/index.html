@@ -612,17 +612,182 @@
         Database settings are disabled in Demo Mode. Use the controls under Site Settings to manage demo data.
       </div>
     </div>
-    <div class="settings-card">
+    <!-- Tab navigation -->
+    <div class="db-tab-nav">
+      <button class="db-tab-btn active" id="db-tab-btn-backup" onclick="switchDbTab('backup')">Backup</button>
+      <button class="db-tab-btn" id="db-tab-btn-restore" onclick="switchDbTab('restore')">Restore</button>
+      <button class="db-tab-btn" id="db-tab-btn-cleanup" onclick="switchDbTab('cleanup')">Clean Up</button>
+      <button class="db-tab-btn" id="db-tab-btn-schedules" onclick="switchDbTab('schedules')">Auto Backup</button>
+      <button class="db-tab-btn" id="db-tab-btn-reset" onclick="switchDbTab('reset')" style="margin-left:auto;color:#E05555;">Reset DB</button>
+    </div>
+
+    <!-- Tab 1: Backup -->
+    <div id="db-tab-backup" class="db-tab-panel settings-card">
       <h3 class="settings-card-title">Backup Database</h3>
-      <p class="settings-card-desc">Export a snapshot of all data for safekeeping.</p>
-      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+      <p class="settings-card-desc">Export an AES-256-GCM encrypted snapshot. Save the encryption key — it's shown once and required to restore.</p>
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Label (optional)</label>
+        <input type="text" class="form-input" id="backupLabel" placeholder="e.g. Pre-migration backup">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Include tables</label>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;align-items:center;">
+          <label class="form-check" style="font-weight:600;"><input type="checkbox" id="backupFull" onchange="toggleFullBackup(this)" checked> Full Backup</label>
+          <span style="color:var(--border);font-size:16px;">|</span>
+          <div id="backupTableItems" style="display:flex;flex-wrap:wrap;gap:12px;opacity:0.35;pointer-events:none;">
+            <label class="form-check"><input type="checkbox" name="backupItem" value="events" checked> Events</label>
+            <label class="form-check"><input type="checkbox" name="backupItem" value="organizations" checked> Organizations</label>
+            <label class="form-check"><input type="checkbox" name="backupItem" value="users" checked> Users</label>
+            <label class="form-check"><input type="checkbox" name="backupItem" value="messages" checked> Messages</label>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm db-settings-action" onclick="createBackup()">Create Backup</button>
+      <div id="backupListWrap" style="margin-top:20px;">
+        <div style="font-size:13px;color:var(--text-muted);">Loading backups...</div>
+      </div>
     </div>
-    <div class="settings-card">
+
+    <!-- Tab 2: Restore -->
+    <div id="db-tab-restore" class="db-tab-panel settings-card" style="display:none;">
       <h3 class="settings-card-title">Restore Database</h3>
-      <p class="settings-card-desc">Import a previously exported snapshot to restore data.</p>
-      <p style="color:var(--text-dim);font-size:13px;font-style:italic;margin-top:8px;">Coming soon</p>
+      <p class="settings-card-desc">Select a saved backup below, or upload a backup file from your computer. Only the encryption key is needed — the IV is embedded in the backup file.</p>
+
+      <!-- Server-side backup list -->
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Saved backups</label>
+        <div id="restoreBackupListWrap" style="margin-top:6px;">
+          <div style="font-size:13px;color:var(--text-muted);">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Upload toggle -->
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleUploadSection()" id="uploadToggleBtn" style="font-size:12px;">+ Upload a backup file from your computer</button>
+        <div id="uploadSection" style="display:none;margin-top:10px;padding:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <label class="form-label">Backup file (.enc)</label>
+          <input type="file" class="form-input" id="restoreFile" accept=".enc" onchange="selectUploadedFile(this)">
+        </div>
+      </div>
+
+      <!-- Selected backup indicator -->
+      <div id="restoreSelectedWrap" style="display:none;margin-bottom:14px;padding:10px 14px;background:rgba(80,160,100,0.1);border:1px solid rgba(80,160,100,0.3);border-radius:var(--radius-sm);font-size:13px;display:flex;align-items:center;gap:10px;">
+        <span>Selected: <strong id="restoreSelectedLabel"></strong></span>
+        <button class="btn btn-ghost btn-xs" onclick="clearRestoreSelection()">Clear</button>
+      </div>
+
+      <!-- Key + options -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+        <div>
+          <label class="form-label">Encryption Key (hex)</label>
+          <input type="text" class="form-input" id="restoreKey" placeholder="Paste the encryption key shown when this backup was created" style="font-family:monospace;font-size:12px;">
+        </div>
+        <div>
+          <label class="form-label">Restore mode</label>
+          <select class="form-input" id="restoreMode">
+            <option value="overwrite">Overwrite — delete existing data and replace with backup</option>
+            <option value="merge">Merge — add backup data alongside existing records</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Tables to restore</label>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;align-items:center;">
+            <label class="form-check" style="font-weight:600;"><input type="checkbox" id="restoreFull" onchange="toggleRestoreFull(this)" checked> Full Restore</label>
+            <span style="color:var(--border);font-size:16px;">|</span>
+            <div id="restoreTableItems" style="display:flex;flex-wrap:wrap;gap:12px;opacity:0.35;pointer-events:none;">
+              <label class="form-check"><input type="checkbox" name="restoreItem" value="events" checked> Events</label>
+              <label class="form-check"><input type="checkbox" name="restoreItem" value="organizations" checked> Organizations</label>
+              <label class="form-check"><input type="checkbox" name="restoreItem" value="users" checked> Users</label>
+              <label class="form-check"><input type="checkbox" name="restoreItem" value="messages" checked> Messages</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-sm db-settings-action" onclick="previewRestore()">Preview Restore</button>
+      <div id="restorePreviewWrap" style="margin-top:16px;display:none;">
+        <div id="restorePreviewContent"></div>
+        <div style="margin-top:16px;padding:14px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.2);border-radius:var(--radius-sm);">
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Type <strong>RESTORE</strong> to confirm and execute:</p>
+          <input type="text" class="form-input" id="restoreConfirmInput" placeholder="RESTORE" style="margin-bottom:8px;">
+          <button class="btn btn-danger btn-sm db-settings-action" onclick="executeRestore()">Execute Restore</button>
+        </div>
+      </div>
     </div>
-    <div class="settings-card" style="border-color:rgba(224,85,85,0.2);">
+
+    <!-- Tab 3: Cleanup -->
+    <div id="db-tab-cleanup" class="db-tab-panel settings-card" style="display:none;">
+      <h3 class="settings-card-title">Clean Up Data</h3>
+      <p class="settings-card-desc">Archive or permanently delete old data to keep your database tidy.</p>
+      <div id="cleanupCountsWrap" style="margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--text-muted);">Loading counts...</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label class="form-label">Action</label>
+          <select class="form-input" id="cleanupAction">
+            <option value="archive">Archive (hide from normal views)</option>
+            <option value="delete">Delete permanently</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Auto-delete after (days, 0 = never)</label>
+          <input type="number" class="form-input" id="cleanupArchiveDays" value="0" min="0">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="form-label">Apply to</label>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;">
+          <label class="form-check"><input type="checkbox" id="cleanupEvents"> Archived events</label>
+          <label class="form-check"><input type="checkbox" id="cleanupMessages"> Archived messages</label>
+          <label class="form-check"><input type="checkbox" id="cleanupArchivedItems"> Expired archive entries</label>
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm db-settings-action" onclick="executeCleanup()">Execute Cleanup</button>
+    </div>
+
+    <!-- Tab 4: Schedules -->
+    <div id="db-tab-schedules" class="db-tab-panel settings-card" style="display:none;">
+      <h3 class="settings-card-title">Auto Backup Schedules</h3>
+      <p class="settings-card-desc">Generate a Cloudflare Worker script to run backups automatically on a cron schedule.</p>
+      <div id="scheduleListWrap" style="margin-bottom:20px;">
+        <div style="font-size:13px;color:var(--text-muted);">Loading schedules...</div>
+      </div>
+      <div style="padding:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);">
+        <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">New Schedule</h4>
+        <div style="display:grid;gap:12px;">
+          <div>
+            <label class="form-label">Label</label>
+            <input type="text" class="form-input" id="schedLabel" placeholder="e.g. Daily Full Backup">
+          </div>
+          <div>
+            <label class="form-label">Cron expression</label>
+            <input type="text" class="form-input" id="schedCron" value="0 2 * * *">
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
+              <code>0 2 * * *</code> = 2am daily &nbsp;&bull;&nbsp; <code>0 2 * * 0</code> = weekly Sunday &nbsp;&bull;&nbsp;
+              <a href="https://crontab.guru" target="_blank" rel="noopener" style="color:var(--sage);">crontab.guru</a> for help building expressions
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label class="form-label">Backup type</label>
+              <select class="form-input" id="schedType">
+                <option value="full">Full</option>
+                <option value="events">Events only</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Retain for (days)</label>
+              <input type="number" class="form-input" id="schedRetention" value="30" min="1">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm db-settings-action" style="margin-top:12px;" onclick="saveSchedule()">Create Schedule &amp; Generate Script</button>
+      </div>
+    </div>
+
+    <!-- Tab 5: Reset DB -->
+    <div id="db-tab-reset" class="db-tab-panel settings-card" style="display:none;border-color:rgba(224,85,85,0.2);">
       <h3 class="settings-card-title" style="color:#E05555;">Reset Database</h3>
       <p class="settings-card-desc">Selectively clear data from the database. You can reset everything or choose specific categories.</p>
       <button class="btn btn-danger btn-sm db-settings-action" style="margin-top:8px;" onclick="showResetDatabaseModal()">Reset Database...</button>
@@ -1020,6 +1185,72 @@
     </div>
     <div class="modal-body" id="termsContent" style="font-size:14px;line-height:1.7;color:var(--text-muted);">
       <p style="color:var(--text-muted);">Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP KEY MODAL -->
+<div class="modal-overlay" id="backupKeyModal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <h2>Backup Created</h2>
+      <button class="modal-close" onclick="closeModal('backupKeyModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding:12px;background:rgba(255,180,50,0.1);border:1px solid rgba(255,180,50,0.3);border-radius:var(--radius-sm);margin-bottom:16px;font-size:13px;">
+        <strong>Save this key!</strong> It is shown only once and never stored. You will need it to restore this backup. The IV is embedded in the backup file — you do not need to save it separately.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label class="form-label">File</label>
+          <code id="backupKeyFilename" style="display:block;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;word-break:break-all;"></code>
+        </div>
+        <div style="display:flex;gap:16px;">
+          <div><label class="form-label">Backup ID</label><span id="backupKeyId" style="font-size:13px;"></span></div>
+          <div><label class="form-label">Size</label><span id="backupKeySize" style="font-size:13px;"></span></div>
+        </div>
+        <div>
+          <label class="form-label">Encryption Key</label>
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <code id="backupKeyValue" style="flex:1;display:block;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;word-break:break-all;color:var(--sage);"></code>
+            <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('backupKeyValue').textContent);showToast('Key copied!')">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('backupKeyModal')">I've saved the key</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE SCRIPT MODAL -->
+<div class="modal-overlay" id="scheduleScriptModal">
+  <div class="modal-box" style="max-width:700px;">
+    <div class="modal-header">
+      <h2>Auto Backup Worker Script</h2>
+      <button class="modal-close" onclick="closeModal('scheduleScriptModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Deploy this Worker to Cloudflare to run automated backups. Set your domain and secrets as described in the wrangler.toml.</p>
+      <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:0;">
+        <button class="db-tab-btn active" id="scriptTabWorkerBtn" onclick="switchScriptTab('worker')">worker.js</button>
+        <button class="db-tab-btn" id="scriptTabTomlBtn" onclick="switchScriptTab('toml')">wrangler.toml</button>
+      </div>
+      <div id="scriptTabWorker">
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;">
+          <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('scheduleScriptWorker').textContent);showToast('Copied!')">Copy</button>
+          <button class="btn btn-ghost btn-xs" onclick="downloadText(document.getElementById('scheduleScriptWorker').textContent,'worker.js')">Download</button>
+        </div>
+        <pre id="scheduleScriptWorker" style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-all;margin:0;"></pre>
+      </div>
+      <div id="scriptTabToml" style="display:none;">
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;">
+          <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(document.getElementById('scheduleScriptToml').textContent);showToast('Copied!')">Copy</button>
+          <button class="btn btn-ghost btn-xs" onclick="downloadText(document.getElementById('scheduleScriptToml').textContent,'wrangler.toml')">Download</button>
+        </div>
+        <pre id="scheduleScriptToml" style="background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-all;margin:0;"></pre>
+      </div>
     </div>
   </div>
 </div>

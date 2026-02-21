@@ -9,13 +9,23 @@ export async function onRequestGet(context) {
     return Response.json({ error: 'Admin only' }, { status: 403 });
   }
 
+  const url = new URL(context.request.url);
+  const includeArchived = url.searchParams.get('include_archived') === 'true';
+
   try {
-    const { results } = await db.prepare(`
+    let query = `
       SELECT u.id, u.email, u.display_name, u.role, u.org_id, o.name as org_name
       FROM users u
       LEFT JOIN organizations o ON u.org_id = o.id
-      ORDER BY u.display_name
-    `).all();
+    `;
+
+    if (!includeArchived) {
+      query += ` WHERE u.id NOT IN (SELECT item_id FROM archived_items WHERE item_type = 'user')`;
+    }
+
+    query += ` ORDER BY u.display_name`;
+
+    const { results } = await db.prepare(query).all();
 
     return Response.json(results);
   } catch (e) {
