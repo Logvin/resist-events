@@ -1,12 +1,15 @@
 // POST /api/setup — handles Setup Wizard form submission
 
 async function runMigrations(db) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS site_config (
+  // Use db.batch() with individual prepared statements instead of db.exec()
+  // to avoid a production D1 bug where exec() throws
+  // "Cannot read properties of undefined (reading 'duration')" on some runtimes.
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS site_config (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS organizations (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS organizations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       abbreviation TEXT NOT NULL,
@@ -19,16 +22,16 @@ async function runMigrations(db) {
       can_self_publish INTEGER DEFAULT 0,
       can_cross_publish INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS users (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE,
       display_name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'guest',
       org_id INTEGER REFERENCES organizations(id),
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS events (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       org_id INTEGER REFERENCES organizations(id),
@@ -51,16 +54,16 @@ async function runMigrations(db) {
       notes TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS event_flyers (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS event_flyers (
       event_id INTEGER PRIMARY KEY REFERENCES events(id),
       image_data BLOB,
       r2_key TEXT,
       storage_type TEXT NOT NULL,
       template_name TEXT,
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS messages (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       topic TEXT NOT NULL,
       org_id INTEGER REFERENCES organizations(id),
@@ -69,39 +72,39 @@ async function runMigrations(db) {
       user_id INTEGER REFERENCES users(id),
       archived INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS message_replies (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS message_replies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id INTEGER NOT NULL REFERENCES messages(id),
       from_type TEXT NOT NULL,
       text TEXT NOT NULL,
       user_id INTEGER REFERENCES users(id),
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS user_orgs (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS user_orgs (
       user_id INTEGER NOT NULL REFERENCES users(id),
       org_id INTEGER NOT NULL REFERENCES organizations(id),
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, org_id)
-    );
-    CREATE TABLE IF NOT EXISTS message_reads (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS message_reads (
       user_id INTEGER NOT NULL,
       message_id INTEGER NOT NULL REFERENCES messages(id),
       last_read_reply_id INTEGER DEFAULT 0,
       PRIMARY KEY (user_id, message_id)
-    );
-    CREATE TABLE IF NOT EXISTS review_seen (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS review_seen (
       user_id INTEGER NOT NULL,
       event_id INTEGER NOT NULL REFERENCES events(id),
       PRIMARY KEY (user_id, event_id)
-    );
-    CREATE TABLE IF NOT EXISTS event_published_seen (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS event_published_seen (
       user_id INTEGER NOT NULL,
       event_id INTEGER NOT NULL REFERENCES events(id),
       PRIMARY KEY (user_id, event_id)
-    );
-    CREATE TABLE IF NOT EXISTS backups (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS backups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       filename TEXT NOT NULL,
       label TEXT,
@@ -111,8 +114,8 @@ async function runMigrations(db) {
       created_by INTEGER REFERENCES users(id),
       created_at TEXT DEFAULT (datetime('now')),
       expires_at TEXT
-    );
-    CREATE TABLE IF NOT EXISTS backup_schedules (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS backup_schedules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       label TEXT NOT NULL,
       cron TEXT NOT NULL,
@@ -121,22 +124,22 @@ async function runMigrations(db) {
       active INTEGER NOT NULL DEFAULT 1,
       encryption_key_hint TEXT,
       created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS archived_items (
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS archived_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_type TEXT NOT NULL,
       item_id INTEGER NOT NULL,
       archived_at TEXT DEFAULT (datetime('now')),
       delete_after TEXT
-    );
-    CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
-    CREATE INDEX IF NOT EXISTS idx_events_org ON events(org_id);
-    CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
-    CREATE INDEX IF NOT EXISTS idx_messages_org ON messages(org_id);
-    CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
-    CREATE INDEX IF NOT EXISTS idx_replies_message ON message_replies(message_id);
-    CREATE INDEX IF NOT EXISTS idx_archived_items_lookup ON archived_items(item_type, item_id);
-  `);
+    )`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_events_date ON events(date)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_events_org ON events(org_id)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_messages_org ON messages(org_id)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_replies_message ON message_replies(message_id)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_archived_items_lookup ON archived_items(item_type, item_id)`),
+  ]);
 }
 
 export async function onRequestPost(context) {
