@@ -385,14 +385,15 @@ async function cfAccessLogin() {
 }
 
 async function cfAccessLogout() {
-  // Set app-level logged-out flag (middleware will ignore JWT)
+  // Set app-level logged-out flag — middleware will ignore the CF Access JWT
+  // and treat the user as a guest. We do NOT redirect to /cdn-cgi/access/logout
+  // because that clears the CF_Authorization cookie and then redirects to the
+  // CF Access team domain, which shows a "no access cookie" error page.
+  // Soft-logout is correct for a public event calendar: the user appears logged
+  // out in this app; clicking Sign In will transparently re-authenticate them
+  // via their existing CF Access / IDP session.
   await fetch('/api/auth/logout', { method: 'POST' });
-  // Full-page redirect to the CF Access app-level logout endpoint.
-  // This clears the CF_Authorization cookie on this domain so that
-  // clicking Sign In will require full re-authentication rather than
-  // silently reusing the existing CF Access session.
-  // (The iframe approach cannot clear an httpOnly cookie across origins.)
-  window.location.href = '/cdn-cgi/access/logout';
+  window.location.href = '/';
 }
 
 // ======= INIT =======
