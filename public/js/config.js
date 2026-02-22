@@ -320,10 +320,13 @@ async function applyLiveRole() {
     if (!res.ok) throw new Error('Failed to fetch session');
     const data = await res.json();
 
-    LiveSession.authenticated = data.authenticated;
+    // Only treat the session as authenticated if it came from a real CF Access
+    // JWT — not from a stale demo_role cookie. If authMode is 'demo' the
+    // middleware found no CF Access credentials, so we force guest.
+    LiveSession.authenticated = data.authenticated && data.authMode !== 'demo';
     LiveSession.email = data.email || null;
 
-    if (data.authenticated) {
+    if (LiveSession.authenticated) {
       DemoSession.role = data.role;
       DemoSession.userId = data.user_id || null;
       DemoSession.orgId = data.org_id || null;
